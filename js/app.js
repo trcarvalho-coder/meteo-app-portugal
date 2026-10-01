@@ -288,4 +288,4 @@ if (typeof window.esri !== 'undefined' && typeof window.esri.Map !== 'undefined'
         }
     });
 }
-window.AppModule = AppModule;
+export default AppModule;
