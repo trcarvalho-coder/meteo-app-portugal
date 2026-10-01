@@ -209,47 +209,46 @@
                 <p>Mapas: <strong>Esri ArcGIS</strong></p>
                 <p>© 2024 Meteo Portugal App</p>
             </div>
-        </footer>
+            </footer>
     </div>
 
-    <script src="https://js.arcgis.com/5.1/init.js"></script>
-    <!-- ⬇️ ⬇️ ⬇️ ADICIONE AQUI ⬇️ ⬇️ ⬇️ -->
-    <script>
-      // Garantir que o ArcGIS está carregado antes dos nossos módulos
-      require([
-        "esri/Map",
-        "esri/views/MapView",
-        "esri/layers/GraphicsLayer",
-        "esri/geometry/Point",
-        "esri/symbols/SimpleMarkerSymbol",
-        "esri/symbols/TextSymbol",
-        "esri/Graphic"
-      ], function(
-        Map, MapView, GraphicsLayer,
-        Point, SimpleMarkerSymbol, TextSymbol, Graphic
-      ) {
-        // Disponibilizar globalmente
-        window.esri = window.esri || {};
-        window.esri.Map = Map;
-        window.esri.MapView = MapView;
-        window.esri.layers = window.esri.layers || {};
-        window.esri.layers.GraphicsLayer = GraphicsLayer;
-        window.esri.geometry = window.esri.geometry || {};
-        window.esri.geometry.Point = Point;
-        window.esri.symbols = window.esri.symbols || {};
-        window.esri.symbols.SimpleMarkerSymbol = SimpleMarkerSymbol;
-        window.esri.symbols.TextSymbol = TextSymbol;
-        window.esri.Graphic = Graphic;
+    <!-- ArcGIS JavaScript API -->
+    <script src="https://js.arcgis.com/5.1/"></script>
 
-        // Disparar evento para inicializar a aplicação
-        document.dispatchEvent(new Event('arcgis-ready'));
-      });
-    </script>
-    <!-- ⬆️ ⬆️ ⬆️ ATÉ AQUI ⬆️ ⬆️ ⬆️ -->
+    <!-- Seus scripts -->
     <script src="js/config.js"></script>
     <script src="js/map.js"></script>
     <script src="js/ipma-api.js"></script>
     <script src="js/openmeteo-api.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Inicialização manual do ArcGIS -->
+    <script>
+      // Aguardar que o DOM e o ArcGIS estejam carregados
+      function initializeApplication() {
+        // Verificar se o ArcGIS está carregado
+        if (typeof Map === 'undefined' || typeof MapView === 'undefined') {
+          // Se não estiver, tentar novamente após 200ms
+          setTimeout(initializeApplication, 200);
+          return;
+        }
+
+        // Verificar se os módulos da app estão carregados
+        if (typeof MapModule === 'undefined' || typeof AppModule === 'undefined') {
+          setTimeout(initializeApplication, 200);
+          return;
+        }
+
+        // Inicializar a aplicação
+        AppModule.init();
+      }
+
+      // Chamar quando o DOM estiver pronto
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeApplication);
+      } else {
+        initializeApplication();
+      }
+    </script>
 </body>
 </html>
