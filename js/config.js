@@ -2,16 +2,13 @@
 export const Config = {
     // ArcGIS Configuration
     arcgis: {
-        apiUrl: 'https://js.arcgis.com/5.1/',
+        apiUrl: 'https://js.arcgis.com/5.1.26/',
         basemaps: {
             streets: 'arcgis-topographic',
             satellite: 'arcgis-imagery',
             terrain: 'arcgis-terrain'
         },
-        center: [
-            -8.0, // Longitude (Portugal center)
-            39.5  // Latitude (Portugal center)
-        ],
+        center: [-8.0, 39.5], // Portugal center
         zoom: 7
     },
 
@@ -28,7 +25,7 @@ export const Config = {
             { id: '01', name: 'Viana do Castelo' },
             { id: '02', name: 'Vila Real' },
             { id: '03', name: 'Braga' },
-            { id: '04', name: 'Braganca' },
+            { id: '04', name: 'Bragança' },
             { id: '05', name: 'Viseu' },
             { id: '06', name: 'Guarda' },
             { id: '07', name: 'Coimbra' },
@@ -60,24 +57,13 @@ export const Config = {
         },
         defaultParams: {
             current: [
-                'temperature_2m',
-                'relative_humidity_2m',
-                'apparent_temperature',
-                'precipitation',
-                'weather_code',
-                'wind_speed_10m',
-                'wind_direction_10m',
-                'pressure_msl',
-                'visibility',
-                'uv_index',
-                'cloud_cover'
+                'temperature_2m', 'relative_humidity_2m', 'apparent_temperature',
+                'precipitation', 'weather_code', 'wind_speed_10m', 'wind_direction_10m',
+                'pressure_msl', 'visibility', 'uv_index', 'cloud_cover'
             ],
             daily: [
-                'weather_code',
-                'temperature_2m_max',
-                'temperature_2m_min',
-                'precipitation_sum',
-                'wind_speed_10m_max'
+                'weather_code', 'temperature_2m_max', 'temperature_2m_min',
+                'precipitation_sum', 'wind_speed_10m_max'
             ]
         },
         weatherCodes: {
@@ -109,7 +95,7 @@ export const Config = {
             lng: -9.1393,
             name: 'Lisboa, Portugal'
         },
-        updateInterval: 300000,
+        updateInterval: 300000, // 5 minutes
         maxForecastDays: 7,
         debug: false
     },
@@ -130,13 +116,16 @@ export const Helpers = {
     formatVisibility: (visibility) => visibility ? `${(visibility / 1000).toFixed(1)} km` : '--',
     formatUVIndex: (uvIndex) => uvIndex ? `${Math.round(uvIndex)}` : '--',
     formatCloudCover: (cloudCover) => cloudCover ? `${Math.round(cloudCover)}%` : '--',
+
     getWindDirection: (degrees) => {
         if (degrees === null || degrees === undefined) return '--';
         const index = Math.round(degrees / 22.5) % 16;
         return Config.windDirections[index];
     },
+
     getWeatherIcon: (code) => Config.openmeteo.weatherCodes[code]?.icon || '🌦️',
     getWeatherDescription: (code) => Config.openmeteo.weatherCodes[code]?.description || 'Desconhecido',
+
     formatDate: (dateString) => {
         if (!dateString) return '--';
         const date = new Date(dateString);
@@ -144,8 +133,18 @@ export const Helpers = {
         const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
     },
+
     formatAlertLevel: (level) => ['', 'Minor', 'Moderado', 'Severo', 'Extremo'][level] || 'Desconhecido',
-    getAlertLevelColor: (level) => ['', '#2ecc71', '#f39c12', '#e74c3c', '#c0392b'][level] || '#7f8c8d'
+    getAlertLevelColor: (level) => ['', '#2ecc71', '#f39c12', '#e74c3c', '#c0392b'][level] || '#7f8c8d',
+
+    hexToRgb: (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+    }
 };
-// Disponibilizar globalmente
-export { Config, Helpers };
+
+// Disponibilizar globalmente para o HTML
+window.Config = Config;
+window.Helpers = Helpers;
