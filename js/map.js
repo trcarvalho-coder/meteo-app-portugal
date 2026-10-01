@@ -291,4 +291,4 @@ const MapModule = (function() {
 
 })();
 
-window.MapModule = MapModule;
+export default MapModule;
