@@ -1,21 +1,28 @@
 // ===== IPMA API Module =====
+import { Config, Helpers } from './config.js';
+
 const IPMAModule = (function() {
     'use strict';
 
-    let alertsCache = [], forecastCache = {}, stationsCache = [], lastUpdateTime = 0;
-    const CACHE_DURATION = 300000;
+    let alertsCache = [];
+    let forecastCache = {};
+    let stationsCache = [];
+    let lastUpdateTime = 0;
+    const CACHE_DURATION = 300000; // 5 minutos
 
+    // Fazer fetch dos dados
     async function fetchData(endpoint) {
         try {
             const response = await fetch(`${Config.ipma.baseUrl}${endpoint}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return await response.json();
         } catch (error) {
-            console.error(`Failed to fetch from IPMA: ${endpoint}`, error);
+            console.error(`❌ Falha ao buscar dados do IPMA: ${endpoint}`, error);
             return null;
         }
     }
 
+    // Carregar alertas
     async function loadAlerts(forceRefresh = false) {
         const now = Date.now();
         if (!forceRefresh && alertsCache.length > 0 && (now - lastUpdateTime) < CACHE_DURATION) {
@@ -40,19 +47,24 @@ const IPMAModule = (function() {
                     coordinates: getDistrictCoordinates(warning.districtId || warning.district)
                 });
             });
+
+            // Ordenar por gravidade (mais grave primeiro) e depois por data
             alerts.sort((a, b) => b.level - a.level || a.startDate - b.startDate);
         }
+
         alertsCache = alerts;
         lastUpdateTime = now;
         return alerts;
     }
 
+    // Obter nome do distrito
     function getDistrictName(districtId) {
         if (!districtId) return 'Desconhecido';
         const district = Config.ipma.districts.find(d => d.id === districtId.toString());
         return district ? district.name : districtId;
     }
 
+    // Obter coordenadas do distrito
     function getDistrictCoordinates(districtId) {
         const districtCoords = {
             '01': [[-8.8, 41.7]], '02': [[-7.7, 41.3]], '03': [[-8.4, 41.6]],
@@ -65,6 +77,7 @@ const IPMAModule = (function() {
         return districtCoords[districtId] || [[-8.0, 39.5]];
     }
 
+    // Carregar cidades
     async function loadCities() {
         if (stationsCache.length > 0) return stationsCache;
         const data = await fetchData(Config.ipma.endpoints.stations);
@@ -72,6 +85,15 @@ const IPMAModule = (function() {
         return stationsCache;
     }
 
-    return { loadAlerts, loadCities, getDistrictName };
+    // Função pública
+    return {
+        loadAlerts,
+        loadCities,
+        getDistrictName,
+        getDistrictCoordinates
+    };
 })();
+
+// Disponibilizar globalmente
+window.IPMAModule = IPMAModule;
 export default IPMAModule;
