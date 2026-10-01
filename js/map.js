@@ -1,3 +1,5 @@
+// No início do ficheiro
+import { Config, Helpers } from './config.js';
 // ===== Map Module =====
 const MapModule = (function() {
     'use strict';
@@ -96,10 +98,10 @@ const MapModule = (function() {
 
                     addLocationMarker(lng, lat, 'Sua Localização');
                     updateLocationInfo();
-
-                    if (typeof AppModule !== 'undefined') {
-                        AppModule.updateWeatherData(lat, lng);
-                    }
+// E use window.AppModule em vez de AppModule
+                    if (typeof window.AppModule !== 'undefined') {
+    window.AppModule.updateWeatherData(lat, lng);
+}
                 },
                 (error) => {
                     console.error('Erro ao obter localização:', error);
