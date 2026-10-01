@@ -148,5 +148,4 @@ const Helpers = {
     getAlertLevelColor: (level) => ['', '#2ecc71', '#f39c12', '#e74c3c', '#c0392b'][level] || '#7f8c8d'
 };
 // Disponibilizar globalmente
-window.Config = Config;
-window.Helpers = Helpers;
+export { Config, Helpers };
