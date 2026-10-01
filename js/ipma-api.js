@@ -74,4 +74,4 @@ const IPMAModule = (function() {
 
     return { loadAlerts, loadCities, getDistrictName };
 })();
-window.IPMAModule = IPMAModule;
+export default IPMAModule;
