@@ -223,53 +223,47 @@
     </div>
 
     <!-- ArcGIS Maps SDK for JavaScript 5.1.26 -->
-    <script type="module">
-        import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
-        import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
-        import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
-        import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
-        import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
-        import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
-        import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
+<script type="module">
+    import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
+    import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
+    import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
+    import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
+    import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
+    import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
+    import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
 
-        // Disponibilizar globalmente para os outros scripts
-        window.arcgis = {
-            Map,
-            MapView,
-            GraphicsLayer,
-            Point,
-            SimpleMarkerSymbol,
-            TextSymbol,
-            Graphic
-        };
+    // Disponibilizar globalmente
+    window.arcgis = {
+        Map,
+        MapView,
+        GraphicsLayer,
+        Point,
+        SimpleMarkerSymbol,
+        TextSymbol,
+        Graphic
+    };
+</script>
 
-        // Disparar evento quando o ArcGIS estiver pronto
-        document.dispatchEvent(new Event("arcgis-loaded"));
-    </script>
+<!-- Seus scripts -->
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/map.js"></script>
+<script type="module" src="js/ipma-api.js"></script>
+<script type="module" src="js/openmeteo-api.js"></script>
+<script type="module" src="js/app.js"></script>
 
-    <!-- Aplicação (ES Modules) -->
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/map.js"></script>
-    <script type="module" src="js/ipma-api.js"></script>
-    <script type="module" src="js/openmeteo-api.js"></script>
-    <script type="module" src="js/app.js"></script>
-
-    <!-- Inicialização -->
-    <script type="module">
-        document.addEventListener("DOMContentLoaded", () => {
-            document.addEventListener("arcgis-loaded", () => {
-                if (typeof AppModule !== "undefined") {
-                    AppModule.init();
-                }
-            });
-
-            // Se o ArcGIS já estiver carregado
-            if (typeof arcgis !== "undefined" && typeof arcgis.Map !== "undefined") {
-                if (typeof AppModule !== "undefined") {
-                    AppModule.init();
+<!-- Inicialização -->
+<script type="module">
+    document.addEventListener("DOMContentLoaded", () => {
+        // Aguardar que o arcgis esteja definido
+        const checkArcGIS = setInterval(() => {
+            if (typeof window.arcgis !== 'undefined') {
+                clearInterval(checkArcGIS);
+                if (typeof window.AppModule !== 'undefined') {
+                    window.AppModule.init();
                 }
             }
-        });
-    </script>
+        }, 100);
+    });
+</script>
 </body>
 </html>
