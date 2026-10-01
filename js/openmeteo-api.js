@@ -90,4 +90,4 @@ const OpenMeteoModule = (function() {
 
     return { loadCurrentConditions, loadDailyForecast };
 })();
-window.OpenMeteoModule = OpenMeteoModule;
+export default OpenMeteoModule;
