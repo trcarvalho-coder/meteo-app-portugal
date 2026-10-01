@@ -3,26 +3,26 @@ const MapModule = (function() {
     'use strict';
 
     let map, view;
-    let currentBasemap = 'arcgis-topographic'; // Usar string em vez de objeto
+    let currentBasemap = 'topo';
     let currentLocation = { lat: 38.7223, lng: -9.1393, name: 'Lisboa' };
     let weatherLayer, alertsLayer;
 
-    // Função para inicializar o mapa (chamada após ArcGIS carregar)
-    function initializeMap() {
+    function init() {
         try {
-            // Verificar se ArcGIS está carregado
-            if (typeof esri === 'undefined' || typeof esri.Map === 'undefined') {
-                console.error('ArcGIS API não carregado!');
-                setTimeout(initializeMap, 500); // Tentar novamente
-                return;
+            // Verificar se o ArcGIS está carregado
+            if (typeof Map === 'undefined' || typeof MapView === 'undefined') {
+                console.log('ArcGIS não carregado. Tentando novamente...');
+                setTimeout(init, 200);
+                return null;
             }
 
-            // Usar esri.Map em vez de Map
-            map = new esri.Map({
+            // Criar o mapa
+            map = new Map({
                 basemap: currentBasemap
             });
 
-            view = new esri.views.MapView({
+            // Criar a vista do mapa
+            view = new MapView({
                 container: 'map-view',
                 map: map,
                 center: [currentLocation.lng, currentLocation.lat],
@@ -32,8 +32,14 @@ const MapModule = (function() {
                 }
             });
 
+            // Inicializar camadas
+            weatherLayer = new GraphicsLayer();
+            alertsLayer = new GraphicsLayer();
+            map.add(weatherLayer);
+            map.add(alertsLayer);
+
+            // Configurar event listeners
             setupEventListeners();
-            initLayers();
             updateLocationInfo();
 
             console.log('✅ Mapa inicializado com sucesso!');
@@ -46,27 +52,20 @@ const MapModule = (function() {
     }
 
     function setupEventListeners() {
-        // Basemap toggle
+        // Botões de basemap
         document.getElementById('basemap-streets')?.addEventListener('click', () => {
-            changeBasemap('arcgis-topographic');
+            changeBasemap('topo');
         });
         document.getElementById('basemap-satellite')?.addEventListener('click', () => {
-            changeBasemap('arcgis-imagery');
+            changeBasemap('satellite');
         });
         document.getElementById('basemap-terrain')?.addEventListener('click', () => {
-            changeBasemap('arcgis-terrain');
+            changeBasemap('terrain');
         });
 
-        // Localização
+        // Botões de localização
         document.getElementById('btn-location')?.addEventListener('click', getCurrentLocation);
         document.getElementById('btn-refresh')?.addEventListener('click', refreshData);
-    }
-
-    function initLayers() {
-        weatherLayer = new esri.layers.GraphicsLayer();
-        alertsLayer = new esri.layers.GraphicsLayer();
-        map.add(weatherLayer);
-        map.add(alertsLayer);
     }
 
     function changeBasemap(basemapId) {
@@ -114,14 +113,14 @@ const MapModule = (function() {
     }
 
     function addLocationMarker(longitude, latitude, title = '') {
-        if (!weatherLayer) return;
+        if (!weatherLayer || !view) return;
 
-        const point = new esri.geometry.Point({
+        const point = new Point({
             longitude: longitude,
             latitude: latitude
         });
 
-        const markerSymbol = new esri.symbols.SimpleMarkerSymbol({
+        const markerSymbol = new SimpleMarkerSymbol({
             style: 'circle',
             color: [255, 0, 0],
             size: 12,
@@ -131,7 +130,7 @@ const MapModule = (function() {
             }
         });
 
-        const graphic = new esri.Graphic({
+        const graphic = new Graphic({
             geometry: point,
             symbol: markerSymbol,
             attributes: { title: title }
@@ -141,33 +140,33 @@ const MapModule = (function() {
     }
 
     function addWeatherData(longitude, latitude, weatherData) {
-        if (!weatherLayer || !map) return;
+        if (!weatherLayer || !view) return;
 
         weatherLayer.removeAll();
 
-        const point = new esri.geometry.Point({
+        const point = new Point({
             longitude: longitude,
             latitude: latitude
         });
 
         const weatherIcon = getWeatherIcon(weatherData.weatherCode);
-        const weatherSymbol = new esri.symbols.TextSymbol({
+        const weatherSymbol = new TextSymbol({
             text: weatherIcon,
             font: {
                 size: 24,
                 family: 'emoji'
             },
             color: [255, 255, 255],
-            haloColor: [52, 152, 219], // azul
+            haloColor: [52, 152, 219],
             haloSize: 2
         });
 
-        weatherLayer.add(new esri.Graphic({
+        weatherLayer.add(new Graphic({
             geometry: point,
             symbol: weatherSymbol
         }));
 
-        const tempLabel = new esri.symbols.TextSymbol({
+        const tempLabel = new TextSymbol({
             text: `${Math.round(weatherData.temperature || 0)}°C`,
             font: {
                 size: 12,
@@ -179,7 +178,7 @@ const MapModule = (function() {
             yoffset: 25
         });
 
-        weatherLayer.add(new esri.Graphic({
+        weatherLayer.add(new Graphic({
             geometry: point,
             symbol: tempLabel
         }));
@@ -197,14 +196,14 @@ const MapModule = (function() {
     }
 
     function addAlertsToMap(alerts) {
-        if (!alertsLayer || !map) return;
+        if (!alertsLayer || !view) return;
 
         alertsLayer.removeAll();
 
         alerts.forEach(alert => {
             if (alert.coordinates && alert.coordinates.length > 0) {
                 const coord = alert.coordinates[0];
-                const point = new esri.geometry.Point({
+                const point = new Point({
                     longitude: coord[0],
                     latitude: coord[1]
                 });
@@ -212,7 +211,7 @@ const MapModule = (function() {
                 const alertColor = getAlertLevelColor(alert.level);
                 const alertIcon = getAlertIcon(alert.type);
 
-                const alertSymbol = new esri.symbols.TextSymbol({
+                const alertSymbol = new TextSymbol({
                     text: alertIcon,
                     font: {
                         size: 20,
@@ -223,7 +222,7 @@ const MapModule = (function() {
                     haloSize: 2
                 });
 
-                alertsLayer.add(new esri.Graphic({
+                alertsLayer.add(new Graphic({
                     geometry: point,
                     symbol: alertSymbol
                 }));
@@ -232,9 +231,7 @@ const MapModule = (function() {
     }
 
     function getAlertIcon(type) {
-        const icons = {
-            '1': '🌬️', '2': '🌧️', '3': '🌡️', '4': '❄️', '5': '⛈️'
-        };
+        const icons = { '1': '🌬️', '2': '🌧️', '3': '🌡️', '4': '❄️', '5': '⛈️' };
         return icons[type] || '⚠️';
     }
 
@@ -281,19 +278,8 @@ const MapModule = (function() {
         }
     }
 
-    // Função pública para inicializar
-    function init() {
-        // Aguardar que o ArcGIS esteja carregado
-        if (typeof esri === 'undefined') {
-            setTimeout(init, 200);
-            return;
-        }
-        return initializeMap();
-    }
-
-    // Retornar API pública
     return {
-        initMap: init,
+        init,
         changeBasemap,
         getCurrentLocation,
         addLocationMarker,
@@ -305,5 +291,4 @@ const MapModule = (function() {
 
 })();
 
-// Disponibilizar globalmente
 window.MapModule = MapModule;
