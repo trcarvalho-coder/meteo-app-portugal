@@ -9,7 +9,7 @@ const AppModule = (function() {
 
     async function init() {
         try {
-            const mapResult = MapModule.initMap();
+            const mapResult = MapModule.init();
             if (!mapResult) {
                 console.error('Failed to initialize map');
                 return;
@@ -273,5 +273,19 @@ const AppModule = (function() {
     return { init, updateWeatherData, loadAlerts, loadForecastData, switchTab, searchLocation };
 })();
 
-document.addEventListener('DOMContentLoaded', () => AppModule.init());
+// Verificar se ArcGIS já está carregado
+if (typeof window.esri !== 'undefined' && typeof window.esri.Map !== 'undefined') {
+    // Se já estiver carregado, inicializar agora
+    document.addEventListener('DOMContentLoaded', () => AppModule.init());
+} else {
+    // Senão, esperar pelo evento arcgis-ready
+    document.addEventListener('arcgis-ready', () => {
+        // Esperar que o DOM também esteja pronto
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            AppModule.init();
+        } else {
+            document.addEventListener('DOMContentLoaded', () => AppModule.init());
+        }
+    });
+}
 window.AppModule = AppModule;
