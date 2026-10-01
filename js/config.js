@@ -1,16 +1,16 @@
 // ===== Application Configuration =====
 export const Config = {
-    // ArcGIS Configuration
-    arcgis: {
-        apiUrl: 'https://js.arcgis.com/5.1.26/',
-        basemaps: {
-            streets: 'arcgis-topographic',
-            satellite: 'arcgis-imagery',
-            terrain: 'arcgis-terrain'
-        },
-        center: [-8.0, 39.5], // Portugal center
-        zoom: 7
+    // ===== No config.js, substitua a secção arcgis por esta ===
+arcgis: {
+    apiUrl: 'https://js.arcgis.com/5.1.26/',
+    basemaps: {
+        streets: 'topo-vector',      // ❌ era 'arcgis-topographic'
+        satellite: 'satellite',      // ✅ mantém
+        terrain: 'terrain'           // ✅ mantém
     },
+    center: [-8.0, 39.5],
+    zoom: 7
+},
 
     // IPMA API Configuration
     ipma: {
