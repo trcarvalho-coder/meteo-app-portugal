@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meteo Portugal</title>
+    <title>Meteo Portugal - Aplicação Meteorológica</title>
 
-    <!-- CSS do ArcGIS 5.x -->
-    <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css">
+    <!-- ArcGIS 5.1.26 CSS -->
+    <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/esri/themes/light/main.css">
 
     <!-- CSS da aplicação -->
     <link rel="stylesheet" href="css/style.css">
@@ -14,6 +14,7 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- Header -->
         <header class="app-header">
             <div class="header-content">
                 <h1>⛅ Meteo Portugal</h1>
@@ -29,6 +30,7 @@
             </div>
         </header>
 
+        <!-- Navigation Tabs -->
         <nav class="nav-tabs">
             <button class="nav-tab active" data-tab="map">🗺️ Mapa</button>
             <button class="nav-tab" data-tab="alerts">⚠️ Alertas</button>
@@ -36,15 +38,17 @@
             <button class="nav-tab" data-tab="forecast">📅 Previsão</button>
         </nav>
 
+        <!-- Main Content -->
         <main class="main-content">
+            <!-- Map Tab -->
             <div id="map-tab" class="tab-content active">
                 <div id="map-view" class="map-container"></div>
                 <div class="map-overlay">
                     <div class="map-controls">
                         <div class="basemap-toggle">
-                            <button id="basemap-streets" class="basemap-btn active" data-basemap="streets">Ruas</button>
-                            <button id="basemap-satellite" class="basemap-btn" data-basemap="satellite">Satélite</button>
-                            <button id="basemap-terrain" class="basemap-btn" data-basemap="terrain">Terreno</button>
+                            <button id="basemap-streets" class="basemap-btn active" data-basemap="arcgis-topographic">Ruas</button>
+                            <button id="basemap-satellite" class="basemap-btn" data-basemap="arcgis-imagery">Satélite</button>
+                            <button id="basemap-terrain" class="basemap-btn" data-basemap="arcgis-terrain">Terreno</button>
                         </div>
                     </div>
                     <div class="map-info">
@@ -56,6 +60,7 @@
                 </div>
             </div>
 
+            <!-- Alerts Tab -->
             <div id="alerts-tab" class="tab-content">
                 <div class="alerts-container">
                     <div class="alerts-header">
@@ -83,6 +88,7 @@
                 </div>
             </div>
 
+            <!-- Current Conditions Tab -->
             <div id="current-tab" class="tab-content">
                 <div class="current-conditions">
                     <div class="conditions-header">
@@ -178,6 +184,7 @@
                 </div>
             </div>
 
+            <!-- Forecast Tab -->
             <div id="forecast-tab" class="tab-content">
                 <div class="forecast-container">
                     <div class="forecast-header">
@@ -205,39 +212,42 @@
             </div>
         </main>
 
+        <!-- Footer -->
         <footer class="app-footer">
             <div class="footer-content">
                 <p>Dados fornecidos por: <strong>IPMA</strong>, <strong>OpenMeteo</strong></p>
-                <p>Mapas: <strong>Esri ArcGIS</strong></p>
+                <p>Mapas: <strong>Esri ArcGIS 5.1.26</strong></p>
                 <p>© 2024 Meteo Portugal App</p>
             </div>
-            </footer>
+        </footer>
     </div>
-<script type="module">
-        import Map from 'https://js.arcgis.com/5.1/@arcgis/core/Map.js';
-        import MapView from 'https://js.arcgis.com/5.1/@arcgis/core/views/MapView.js';
-        import GraphicsLayer from 'https://js.arcgis.com/5.1/@arcgis/core/layers/GraphicsLayer.js';
-        import Point from 'https://js.arcgis.com/5.1/@arcgis/core/geometry/Point.js';
-        import SimpleMarkerSymbol from 'https://js.arcgis.com/5.1/@arcgis/core/symbols/SimpleMarkerSymbol.js';
-        import TextSymbol from 'https://js.arcgis.com/5.1/@arcgis/core/symbols/TextSymbol.js';
-        import Graphic from 'https://js.arcgis.com/5.1/@arcgis/core/Graphic.js';
 
-        // Disponibilizar globalmente
-        window.esri = {
+    <!-- ArcGIS Maps SDK for JavaScript 5.1.26 -->
+    <script type="module">
+        import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
+        import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
+        import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
+        import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
+        import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
+        import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
+        import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
+
+        // Disponibilizar globalmente para os outros scripts
+        window.arcgis = {
             Map,
             MapView,
-            layers: { GraphicsLayer },
-            geometry: { Point },
-            symbols: { SimpleMarkerSymbol, TextSymbol },
+            GraphicsLayer,
+            Point,
+            SimpleMarkerSymbol,
+            TextSymbol,
             Graphic
         };
 
-        // Disparar evento
-        document.dispatchEvent(new Event('arcgis-ready'));
+        // Disparar evento quando o ArcGIS estiver pronto
+        document.dispatchEvent(new Event("arcgis-loaded"));
     </script>
 
-    <!-- Seus scripts (devem ser módulos) -->
-    <script type="module" src="js/index.js"></script>
+    <!-- Aplicação (ES Modules) -->
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/map.js"></script>
     <script type="module" src="js/ipma-api.js"></script>
@@ -246,19 +256,20 @@
 
     <!-- Inicialização -->
     <script type="module">
-        document.addEventListener('DOMContentLoaded', () => {
-            document.addEventListener('arcgis-ready', () => {
-                if (typeof AppModule !== 'undefined') {
+        document.addEventListener("DOMContentLoaded", () => {
+            document.addEventListener("arcgis-loaded", () => {
+                if (typeof AppModule !== "undefined") {
                     AppModule.init();
                 }
             });
-            if (typeof esri !== 'undefined') {
-                AppModule.init();
+
+            // Se o ArcGIS já estiver carregado
+            if (typeof arcgis !== "undefined" && typeof arcgis.Map !== "undefined") {
+                if (typeof AppModule !== "undefined") {
+                    AppModule.init();
+                }
             }
         });
     </script>
-    
-
-    
 </body>
 </html>
