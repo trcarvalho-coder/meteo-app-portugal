@@ -1,4 +1,4 @@
-// ===== Map Module =====
+// ===== Map Module para ArcGIS 5.1.26 =====
 import { Config, Helpers } from './config.js';
 
 const MapModule = (function() {
@@ -10,34 +10,38 @@ const MapModule = (function() {
     let weatherLayer, alertsLayer;
 
     // Função principal de inicialização
-    function init() {
+    async function init() {
         try {
             // Verificar se o ArcGIS está carregado
-            if (typeof arcgis === 'undefined' || typeof arcgis.Map === 'undefined') {
+            if (typeof arcgis === 'undefined') {
                 console.log('⏳ ArcGIS não carregado. Tentando novamente...');
                 setTimeout(init, 200);
                 return null;
             }
 
+            // Importar módulos necessários do ArcGIS
+            const { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic } = arcgis;
+
             // Criar o mapa
-            map = new arcgis.Map({
+            map = new Map({
                 basemap: currentBasemap
             });
 
-            // Criar a vista do mapa
-            view = new arcgis.MapView({
+            // Criar a vista do mapa (SEM UI para evitar erros)
+            view = new MapView({
                 container: 'map-view',
                 map: map,
                 center: [currentLocation.lng, currentLocation.lat],
-                zoom: Config.arcgis.zoom,
-                ui: {
-                    components: ['zoom', 'compass', 'attribution']
-                }
+                zoom: Config.arcgis.zoom
+                // ❌ REMOVIDO: ui: { components: [...] } - causa erros
             });
 
+            // Aguardar que a view esteja pronta
+            await view.when();
+
             // Inicializar camadas
-            weatherLayer = new arcgis.GraphicsLayer();
-            alertsLayer = new arcgis.GraphicsLayer();
+            weatherLayer = new GraphicsLayer();
+            alertsLayer = new GraphicsLayer();
             map.add(weatherLayer);
             map.add(alertsLayer);
 
@@ -138,12 +142,16 @@ const MapModule = (function() {
     function addLocationMarker(longitude, latitude, title = '') {
         if (!weatherLayer || !view) return;
 
-        const point = new arcgis.Point({
+        const Point = arcgis.Point;
+        const SimpleMarkerSymbol = arcgis.SimpleMarkerSymbol;
+        const Graphic = arcgis.Graphic;
+
+        const point = new Point({
             longitude: longitude,
             latitude: latitude
         });
 
-        const markerSymbol = new arcgis.SimpleMarkerSymbol({
+        const markerSymbol = new SimpleMarkerSymbol({
             style: 'circle',
             color: [255, 0, 0],
             size: 12,
@@ -153,7 +161,7 @@ const MapModule = (function() {
             }
         });
 
-        const graphic = new arcgis.Graphic({
+        const graphic = new Graphic({
             geometry: point,
             symbol: markerSymbol,
             attributes: { title: title }
@@ -166,32 +174,35 @@ const MapModule = (function() {
     function addWeatherData(longitude, latitude, weatherData) {
         if (!weatherLayer || !view) return;
 
+        const Point = arcgis.Point;
+        const TextSymbol = arcgis.TextSymbol;
+        const Graphic = arcgis.Graphic;
+
         weatherLayer.removeAll();
 
-        const point = new arcgis.Point({
+        const point = new Point({
             longitude: longitude,
             latitude: latitude
         });
 
         const weatherIcon = Helpers.getWeatherIcon(weatherData.weatherCode);
-        const weatherSymbol = new arcgis.TextSymbol({
+        const weatherSymbol = new TextSymbol({
             text: weatherIcon,
             font: {
                 size: 24,
                 family: 'emoji'
             },
             color: [255, 255, 255],
-            haloColor: [52, 152, 219], // Azul
+            haloColor: [52, 152, 219],
             haloSize: 2
         });
 
-        weatherLayer.add(new arcgis.Graphic({
+        weatherLayer.add(new Graphic({
             geometry: point,
             symbol: weatherSymbol
         }));
 
-        // Adicionar label de temperatura
-        const tempLabel = new arcgis.TextSymbol({
+        const tempLabel = new TextSymbol({
             text: `${Math.round(weatherData.temperature || 0)}°C`,
             font: {
                 size: 12,
@@ -203,7 +214,7 @@ const MapModule = (function() {
             yoffset: 25
         });
 
-        weatherLayer.add(new arcgis.Graphic({
+        weatherLayer.add(new Graphic({
             geometry: point,
             symbol: tempLabel
         }));
@@ -213,12 +224,16 @@ const MapModule = (function() {
     function addAlertsToMap(alerts) {
         if (!alertsLayer || !view) return;
 
+        const Point = arcgis.Point;
+        const TextSymbol = arcgis.TextSymbol;
+        const Graphic = arcgis.Graphic;
+
         alertsLayer.removeAll();
 
         alerts.forEach(alert => {
             if (alert.coordinates && alert.coordinates.length > 0) {
                 const coord = alert.coordinates[0];
-                const point = new arcgis.Point({
+                const point = new Point({
                     longitude: coord[0],
                     latitude: coord[1]
                 });
@@ -226,7 +241,7 @@ const MapModule = (function() {
                 const alertColor = Helpers.getAlertLevelColor(alert.level);
                 const alertIcon = Config.ipma.alertTypes[alert.type]?.icon || '⚠️';
 
-                const alertSymbol = new arcgis.TextSymbol({
+                const alertSymbol = new TextSymbol({
                     text: alertIcon,
                     font: {
                         size: 20,
@@ -237,7 +252,7 @@ const MapModule = (function() {
                     haloSize: 2
                 });
 
-                alertsLayer.add(new arcgis.Graphic({
+                alertsLayer.add(new Graphic({
                     geometry: point,
                     symbol: alertSymbol
                 }));
