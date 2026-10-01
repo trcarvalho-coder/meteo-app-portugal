@@ -1,3 +1,8 @@
+// No início do ficheiro
+import { Config, Helpers } from './config.js';
+import MapModule from './map.js';
+import IPMAModule from './ipma-api.js';
+import OpenMeteoModule from './openmeteo-api.js';
 // ===== Main Application Module =====
 const AppModule = (function() {
     'use strict';
