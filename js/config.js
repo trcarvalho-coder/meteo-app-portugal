@@ -1,5 +1,5 @@
 // ===== Application Configuration =====
-const Config = {
+export const Config = {
     // ArcGIS Configuration
     arcgis: {
         apiUrl: 'https://js.arcgis.com/5.1/',
@@ -121,7 +121,7 @@ const Config = {
 };
 
 // ===== Helper Functions =====
-const Helpers = {
+export const Helpers = {
     formatTemperature: (temp) => temp ? `${Math.round(temp)}°C` : '--',
     formatWindSpeed: (speed) => speed ? `${Math.round(speed * 3.6)} km/h` : '--',
     formatHumidity: (humidity) => humidity ? `${Math.round(humidity)}%` : '--',
