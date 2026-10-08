@@ -21,118 +21,471 @@
 
     <!-- CSS Moderno (Windy Style) -->
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght=300;400;700&family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilos inline para garantir que os painéis autónomos são distintos */
+        .autonomous-panels-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .autonomous-panel {
+            background: rgba(40, 40, 60, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 2px solid #4a90e2;
+            overflow: hidden;
+            width: 350px;
+            transition: all 0.3s ease;
+        }
+        
+        .autonomous-panel-header {
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        
+        .autonomous-panel-header h2 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        .panel-toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .panel-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .autonomous-panel-content {
+            padding: 15px;
+            max-height: 50vh;
+            overflow: auto;
+        }
+        
+        /* OpenMeteo Panel - Azul */
+        #openmeteo-panel {
+            border-color: #4a90e2;
+        }
+        
+        #openmeteo-panel-header {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+        }
+        
+        /* IPMA Panel - Laranja */
+        #ipma-panel {
+            border-color: #f39c12;
+        }
+        
+        #ipma-panel-header {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        /* Location Panel - Verde */
+        #location-panel {
+            border-color: #2ecc71;
+        }
+        
+        #location-panel-header {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+        
+        .autonomous-weather-section {
+            background: rgba(50, 50, 70, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .autonomous-weather-section h3 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .autonomous-weather-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .autonomous-weather-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .autonomous-location-search {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .autonomous-location-search input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(30, 30, 50, 0.5);
+            color: #e0e0e0;
+            font-size: 0.85rem;
+        }
+        
+        .autonomous-btn-search {
+            padding: 10px 12px;
+            border: none;
+            background: #4a90e2;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .autonomous-location-info {
+            background: rgba(30, 30, 50, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .autonomous-location-info p {
+            margin: 4px 0;
+            font-size: 0.85rem;
+            color: #e0e0e0;
+        }
+        
+        .autonomous-location-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .autonomous-btn-gps {
+            padding: 10px 12px;
+            border: none;
+            background: #2ecc71;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .autonomous-form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(30, 30, 50, 0.5);
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        
+        .autonomous-hourly-scroll {
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .autonomous-hourly-scroll-content {
+            display: flex;
+            gap: 8px;
+            padding: 5px 0;
+        }
+        
+        .autonomous-hourly-item {
+            min-width: 100px;
+            padding: 8px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+    </style>
 </head>
 <body>
     <div class="windy-container">
+        <!-- Mapa principal -->
         <div id="map-view" class="windy-map"></div>
 
-        <!-- ===== Autonomous Panels Container =====
+        <!-- Painel de Controle Esquerdo (Original) -->
+        <div class="windy-control-panel">
+            <div class="panel-header">
+                <h1>🌤️ Meteo Portugal</h1>
+                <p class="subtitle">Previsão em Tempo Real</p>
+            </div>
+
+            <div class="main-buttons">
+                <button id="btn-current" class="control-btn active" data-panel="current" title="Condições Atuais">
+                    <i class="fas fa-thermometer-half"></i>
+                    <span>Atual</span>
+                </button>
+                <button id="btn-openmeteo" class="control-btn" data-panel="openmeteo" title="OpenMeteo">
+                    <i class="fas fa-cloud"></i>
+                    <span>OpenMeteo</span>
+                </button>
+                <button id="btn-alerts" class="control-btn" data-panel="alerts" title="Alertas Meteorológicos">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Alertas</span>
+                    <span id="alerts-badge" class="badge">0</span>
+                </button>
+                <button id="btn-forecast" class="control-btn" data-panel="forecast" title="Previsão">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Previsão</span>
+                </button>
+                <button id="btn-location" class="control-btn" data-panel="location" title="Localização">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Local</span>
+                </button>
+            </div>
+
+            <div class="info-panels">
+                <div id="panel-current" class="info-panel active">
+                    <div class="panel-content">
+                        <div class="current-weather">
+                            <div class="weather-main">
+                                <div class="weather-icon-large" id="current-weather-icon">🌦️</div>
+                                <div class="weather-temp">
+                                    <span id="current-temp">--</span>°C
+                                </div>
+                                <div class="weather-description" id="current-desc">A carregar...</div>
+                            </div>
+                            <div class="weather-details">
+                                <div class="detail-row">
+                                    <div class="detail-item">
+                                        <i class="fas fa-tint"></i>
+                                        <span>Humidade: <strong id="current-humidity">--</strong>%</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-wind"></i>
+                                        <span>Vento: <strong id="current-wind">--</strong> km/h</span>
+                                    </div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-item">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Rajada: <strong id="current-gust">--</strong> km/h</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-compass"></i>
+                                        <span>Direção: <strong id="current-direction">--</strong></span>
+                                    </div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-item">
+                                        <i class="fas fa-cloud-rain"></i>
+                                        <span>Precip: <strong id="current-precip">--</strong> mm</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panel-openmeteo" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>🌤️ OpenMeteo - Condições Detalhadas</h2>
+                    </div>
+                    <div class="openmeteo-content">
+                        <div class="weather-section">
+                            <h3>🌡️ Condições Atuais</h3>
+                            <div id="openmeteo-current" class="weather-grid"></div>
+                        </div>
+                        <div class="weather-section">
+                            <h3>⏰ Previsão 24 Horas</h3>
+                            <div id="openmeteo-hourly" class="hourly-scroll"></div>
+                        </div>
+                        <div class="weather-section">
+                            <h3>⚠️ Alertas (7 Dias)</h3>
+                            <div id="openmeteo-alerts" class="alerts-scroll"></div>
+                        </div>
+                        <div class="weather-section">
+                            <h3>📅 Previsão 7 Dias</h3>
+                            <div id="openmeteo-daily" class="forecast-scroll"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panel-alerts" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>⚠️ Alertas IPMA</h2>
+                        <div class="alert-filters">
+                            <select id="alert-district" class="form-select">
+                                <option value="">Todos os Distritos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="alerts-container" class="alerts-scroll"></div>
+                </div>
+
+                <div id="panel-forecast" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>📅 Previsão</h2>
+                        <div class="forecast-filters">
+                            <select id="forecast-days" class="form-select">
+                                <option value="1">Hoje</option>
+                                <option value="3" selected>3 Dias</option>
+                                <option value="5">5 Dias</option>
+                                <option value="7">7 Dias</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="forecast-container" class="forecast-scroll"></div>
+                </div>
+
+                <div id="panel-location" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>📍 Localização</h2>
+                    </div>
+                    <div class="location-content">
+                        <div class="location-search">
+                            <input type="text" id="location-search" placeholder="Pesquisar cidade ou coordenadas...">
+                            <button id="search-btn" class="btn-search"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="location-info">
+                            <p><strong>Lat:</strong> <span id="location-lat">--</span></p>
+                            <p><strong>Lng:</strong> <span id="location-lng">--</span></p>
+                            <p><strong>Local:</strong> <span id="location-name">--</span></p>
+                        </div>
+                        <button id="btn-gps" class="btn-gps">
+                            <i class="fas fa-location-arrow"></i> Usar Minha Localização
+                        </button>
+                        <button id="btn-map-select" class="btn-gps" type="button">
+                            <i class="fas fa-crosshairs"></i> Selecionar no mapa
+                        </button>
+                        <button id="btn-clear-selection" class="btn-gps" type="button" style="display:none;">
+                            <i class="fas fa-times"></i> Limpar Seleção
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== NOVOS PAINÉIS AUTÓNOMOS ===== -->
         <div class="autonomous-panels-container">
-            <!-- OpenMeteo Autonomous Panel -->
+            <!-- OpenMeteo Panel -->
             <div id="openmeteo-panel" class="autonomous-panel expanded">
-                <div class="panel-header-small" id="openmeteo-panel-header">
-                    <h2>🌤️ OpenMeteo - Condições Detalhadas</h2>
+                <div class="autonomous-panel-header">
+                    <h2>🌤️ OpenMeteo</h2>
                     <button id="openmeteo-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                <div id="openmeteo-panel-content" class="panel-content">
+                <div id="openmeteo-panel-content" class="autonomous-panel-content">
                     <div id="openmeteo-loading" class="loading-spinner" style="display:none;">
                         <div class="spinner"></div>
                         <p>A carregar dados OpenMeteo...</p>
                     </div>
                     
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>🌡️ Condições Atuais</h3>
-                        <div id="openmeteo-current-data" class="weather-grid"></div>
+                        <div id="openmeteo-current-data" class="autonomous-weather-grid"></div>
                     </div>
 
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>⏰ Previsão 24 Horas</h3>
-                        <div id="openmeteo-hourly-data" class="hourly-scroll"></div>
+                        <div id="openmeteo-hourly-data" class="autonomous-hourly-scroll"></div>
                     </div>
 
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>📅 Previsão 3 Dias</h3>
-                        <div id="openmeteo-daily-3-data" class="forecast-scroll"></div>
+                        <div id="openmeteo-daily-3-data" class="autonomous-hourly-scroll"></div>
                     </div>
 
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>📅 Previsão 5 Dias</h3>
-                        <div id="openmeteo-daily-5-data" class="forecast-scroll"></div>
+                        <div id="openmeteo-daily-5-data" class="autonomous-hourly-scroll"></div>
                     </div>
 
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>📅 Previsão 7 Dias</h3>
-                        <div id="openmeteo-daily-7-data" class="forecast-scroll"></div>
+                        <div id="openmeteo-daily-7-data" class="autonomous-hourly-scroll"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- IPMA Autonomous Panel -->
+            <!-- IPMA Panel -->
             <div id="ipma-panel" class="autonomous-panel expanded">
-                <div class="panel-header-small" id="ipma-panel-header">
+                <div class="autonomous-panel-header">
                     <h2>⚠️ Alertas IPMA</h2>
                     <button id="ipma-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                <div id="ipma-panel-content" class="panel-content">
+                <div id="ipma-panel-content" class="autonomous-panel-content">
                     <div id="ipma-loading" class="loading-spinner" style="display:none;">
                         <div class="spinner"></div>
                         <p>A carregar alertas IPMA...</p>
                     </div>
                     
-                    <div class="alert-filters">
-                        <select id="ipma-district-filter" class="form-select">
+                    <div class="autonomous-alert-filters">
+                        <select id="ipma-district-filter" class="autonomous-form-select">
                             <option value="">Todos os Distritos</option>
                         </select>
                     </div>
                     
-                    <div id="ipma-alerts-data" class="alerts-scroll"></div>
+                    <div id="ipma-alerts-data" class="autonomous-alerts-scroll"></div>
                     
-                    <div class="weather-section">
+                    <div class="autonomous-weather-section">
                         <h3>📅 Previsão IPMA</h3>
-                        <select id="ipma-forecast-days" class="form-select">
+                        <select id="ipma-forecast-days" class="autonomous-form-select">
                             <option value="1">Hoje</option>
                             <option value="3" selected>3 Dias</option>
                             <option value="5">5 Dias</option>
                             <option value="7">7 Dias</option>
                         </select>
-                        <div id="ipma-forecast-data" class="forecast-scroll"></div>
+                        <div id="ipma-forecast-data" class="autonomous-hourly-scroll"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Location Autonomous Panel -->
+            <!-- Location Panel -->
             <div id="location-panel" class="autonomous-panel expanded">
-                <div class="panel-header-small" id="location-panel-header">
+                <div class="autonomous-panel-header">
                     <h2>📍 Localização</h2>
                     <button id="location-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                <div id="location-panel-content" class="panel-content">
-                    <div class="location-content">
-                        <div class="location-search">
+                <div id="location-panel-content" class="autonomous-panel-content">
+                    <div class="autonomous-location-content">
+                        <div class="autonomous-location-search">
                             <input type="text" id="location-search-input" placeholder="Pesquisar cidade ou coordenadas...">
-                            <button id="location-search-btn" class="btn-search"><i class="fas fa-search"></i></button>
+                            <button id="location-search-btn" class="autonomous-btn-search"><i class="fas fa-search"></i></button>
                         </div>
-                        <div class="location-info">
+                        <div class="autonomous-location-info">
                             <p><strong>Lat:</strong> <span id="location-lat-display">--</span></p>
                             <p><strong>Lng:</strong> <span id="location-lng-display">--</span></p>
                             <p><strong>Local:</strong> <span id="location-name-display">--</span></p>
                         </div>
-                        <div class="location-buttons">
-                            <button id="location-gps-btn" class="btn-gps">
+                        <div class="autonomous-location-buttons">
+                            <button id="location-gps-btn" class="autonomous-btn-gps">
                                 <i class="fas fa-location-arrow"></i> Usar Minha Localização
                             </button>
-                            <button id="location-map-select-btn" class="btn-gps">
+                            <button id="location-map-select-btn" class="autonomous-btn-gps">
                                 <i class="fas fa-crosshairs"></i> Selecionar no Mapa
                             </button>
-                            <button id="location-clear-selection-btn" class="btn-gps" style="display:none;">
+                            <button id="location-clear-selection-btn" class="autonomous-btn-gps" style="display:none;">
                                 <i class="fas fa-times"></i> Limpar Seleção
                             </button>
                         </div>
@@ -141,6 +494,7 @@
             </div>
         </div>
 
+        <!-- Basemap Panel -->
         <div class="basemap-panel">
             <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa Topográfico">
                 <i class="fas fa-map"></i>
@@ -153,6 +507,7 @@
             </button>
         </div>
 
+        <!-- Attribution Panel -->
         <div class="attribution-panel">
             <div class="data-sources">
                 <span>🌍 <strong>Mapas:</strong> Esri</span>
@@ -162,12 +517,15 @@
         </div>
     </div>
 
-    <!-- Load all panel modules -->
+    <!-- Load all modules -->
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/panels/location-panel.js"></script>
     <script type="module" src="js/panels/openmeteo-panel.js"></script>
     <script type="module" src="js/panels/ipma-panel.js"></script>
     <script type="module" src="js/map.js"></script>
+    <script type="module" src="js/ipma-api.js"></script>
+    <script type="module" src="js/openmeteo-api.js"></script>
+    <script type="module" src="js/app.js"></script>
     <script type="module" src="js/index.js"></script>
 </body>
 </html>
