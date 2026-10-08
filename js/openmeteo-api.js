@@ -6,10 +6,8 @@ const OpenMeteoModule = (function() {
 
     let currentDataCache = {};
     let forecastCache = {};
-    let lastUpdateTime = 0;
-    const CACHE_DURATION = 300000; // 5 minutos
+    const CACHE_DURATION = 300000;
 
-    // Fazer fetch dos dados
     async function fetchData(endpoint, params = {}) {
         try {
             const url = `${Config.openmeteo.baseUrl}${endpoint}`;
@@ -24,13 +22,13 @@ const OpenMeteoModule = (function() {
         }
     }
 
-    // Carregar condições atuais
     async function loadCurrentConditions(latitude, longitude, forceRefresh = false) {
         const cacheKey = `${latitude.toFixed(4)}-${longitude.toFixed(4)}`;
         const now = Date.now();
+        const cached = currentDataCache[cacheKey];
 
-        if (!forceRefresh && currentDataCache[cacheKey] && (now - lastUpdateTime) < CACHE_DURATION) {
-            return currentDataCache[cacheKey];
+        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+            return cached.data;
         }
 
         const params = {
@@ -41,7 +39,7 @@ const OpenMeteoModule = (function() {
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
-        if (!data) return currentDataCache[cacheKey] || null;
+        if (!data) return cached ? cached.data : null;
 
         const conditions = {
             temperature: data.current.temperature_2m,
@@ -62,15 +60,21 @@ const OpenMeteoModule = (function() {
             longitude: data.longitude
         };
 
-        currentDataCache[cacheKey] = conditions;
-        lastUpdateTime = now;
+        currentDataCache[cacheKey] = {
+            data: conditions,
+            timestamp: now
+        };
         return conditions;
     }
 
-    // Carregar previsão diária
-    async function loadDailyForecast(latitude, longitude, days = 3) {
+    async function loadDailyForecast(latitude, longitude, days = 3, forceRefresh = false) {
         const cacheKey = `${latitude.toFixed(4)}-${longitude.toFixed(4)}-${days}`;
-        if (forecastCache[cacheKey]) return forecastCache[cacheKey];
+        const now = Date.now();
+        const cached = forecastCache[cacheKey];
+
+        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+            return cached.data;
+        }
 
         const params = {
             latitude: latitude,
@@ -81,7 +85,7 @@ const OpenMeteoModule = (function() {
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
-        if (!data || !data.daily) return forecastCache[cacheKey] || null;
+        if (!data || !data.daily) return cached ? cached.data : null;
 
         const forecast = [];
         const dailyData = data.daily;
@@ -99,17 +103,18 @@ const OpenMeteoModule = (function() {
             });
         }
 
-        forecastCache[cacheKey] = forecast;
+        forecastCache[cacheKey] = {
+            data: forecast,
+            timestamp: now
+        };
         return forecast;
     }
 
-    // Função pública
     return {
         loadCurrentConditions,
         loadDailyForecast
     };
 })();
 
-// Disponibilizar globalmente
 window.OpenMeteoModule = OpenMeteoModule;
 export default OpenMeteoModule;
