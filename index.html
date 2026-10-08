@@ -23,19 +23,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Container Principal -->
     <div class="windy-container">
-        <!-- Mapa (sempre visível) -->
         <div id="map-view" class="windy-map"></div>
 
-        <!-- Painel de Controle (lado esquerdo) -->
         <div class="windy-control-panel">
             <div class="panel-header">
                 <h1>⛅ Meteo Portugal</h1>
                 <p class="subtitle">Previsão em Tempo Real</p>
             </div>
 
-            <!-- Botões Principais -->
             <div class="main-buttons">
                 <button id="btn-current" class="control-btn active" data-panel="current" title="Condições Atuais">
                     <i class="fas fa-thermometer-half"></i>
@@ -56,9 +52,7 @@
                 </button>
             </div>
 
-            <!-- Painéis de Informação (aparecem ao clicar nos botões) -->
             <div class="info-panels">
-                <!-- Painel de Condições Atuais -->
                 <div id="panel-current" class="info-panel active">
                     <div class="panel-content">
                         <div class="current-weather">
@@ -95,7 +89,6 @@
                     </div>
                 </div>
 
-                <!-- Painel de Alertas -->
                 <div id="panel-alerts" class="info-panel">
                     <div class="panel-header-small">
                         <h2>⚠️ Alertas IPMA</h2>
@@ -113,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- Painel de Previsão -->
                 <div id="panel-forecast" class="info-panel">
                     <div class="panel-header-small">
                         <h2>📅 Previsão</h2>
@@ -134,7 +126,6 @@
                     </div>
                 </div>
 
-                <!-- Painel de Localização -->
                 <div id="panel-location" class="info-panel">
                     <div class="panel-header-small">
                         <h2>📍 Localização</h2>
@@ -152,12 +143,14 @@
                         <button id="btn-gps" class="btn-gps">
                             <i class="fas fa-location-arrow"></i> Usar Minha Localização
                         </button>
+                        <button id="btn-map-select" class="btn-gps" type="button">
+                            <i class="fas fa-crosshairs"></i> Selecionar no mapa
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Painel de Basemaps (canto superior direito) -->
         <div class="basemap-panel">
             <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa Topográfico">
                 <i class="fas fa-map"></i>
@@ -170,7 +163,6 @@
             </button>
         </div>
 
-        <!-- Painel de Atribuição (canto inferior direito) -->
         <div class="attribution-panel">
             <div class="data-sources">
                 <span>🌍 <strong>Mapas:</strong> Esri</span>
@@ -180,7 +172,6 @@
         </div>
     </div>
 
-    <!-- Application Entry Point (loads all modules and initializes app) -->
     <script type="module" src="js/index.js"></script>
 </body>
 </html>
