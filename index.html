@@ -221,6 +221,152 @@
             text-align: center;
             font-size: 0.75rem;
         }
+        
+        .autonomous-alerts-scroll {
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .alert-card {
+            background: rgba(30, 30, 50, 0.5);
+            border-left: 4px solid #e74c3c;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .alert-title {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .alert-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: white;
+        }
+        
+        .alert-details {
+            color: #e0e0e0;
+            margin-bottom: 8px;
+        }
+        
+        .alert-meta {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: #b0b0b0;
+        }
+        
+        .alert-instruction {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(50, 50, 70, 0.5);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .weather-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .label {
+            color: #b0b0b0;
+        }
+        
+        .value {
+            color: #e0e0e0;
+            font-weight: 600;
+        }
+        
+        .text-center {
+            text-align: center;
+            color: #b0b0b0;
+        }
+        
+        .hourly-scroll-content {
+            display: flex;
+            gap: 8px;
+            padding: 5px 0;
+        }
+        
+        .hourly-item {
+            min-width: 100px;
+            padding: 8px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        
+        .forecast-day-small {
+            min-width: 120px;
+            padding: 10px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .forecast-day-header-small {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .forecast-date-small {
+            font-size: 0.8rem;
+            color: #e0e0e0;
+        }
+        
+        .forecast-icon-small {
+            font-size: 1.2rem;
+        }
+        
+        .forecast-temps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .forecast-max {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        
+        .forecast-min {
+            color: #4a90e2;
+            font-weight: bold;
+        }
+        
+        .forecast-day-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            font-size: 0.75rem;
+            color: #b0b0b0;
+        }
     </style>
 </head>
 <body>
@@ -405,6 +551,11 @@
                     <div class="autonomous-weather-section">
                         <h3>⏰ Previsão 24 Horas</h3>
                         <div id="openmeteo-hourly-data" class="autonomous-hourly-scroll"></div>
+                    </div>
+
+                    <div class="autonomous-weather-section">
+                        <h3>⚠️ Alertas Meteorológicos</h3>
+                        <div id="openmeteo-alerts-data" class="autonomous-hourly-scroll"></div>
                     </div>
 
                     <div class="autonomous-weather-section">

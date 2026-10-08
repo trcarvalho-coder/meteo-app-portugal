@@ -51,16 +51,18 @@ const LocationPanel = (function() {
         isExpanded = !isExpanded;
         const elements = getElements();
         
-        if (isExpanded) {
-            elements.panel.classList.add('expanded');
-            elements.panel.classList.remove('collapsed');
-            elements.content.style.display = 'block';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-        } else {
-            elements.panel.classList.add('collapsed');
-            elements.panel.classList.remove('expanded');
-            elements.content.style.display = 'none';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        if (elements.panel && elements.content && elements.toggleBtn) {
+            if (isExpanded) {
+                elements.panel.classList.add('expanded');
+                elements.panel.classList.remove('collapsed');
+                elements.content.style.display = 'block';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            } else {
+                elements.panel.classList.add('collapsed');
+                elements.panel.classList.remove('expanded');
+                elements.content.style.display = 'none';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            }
         }
     }
 
@@ -231,14 +233,16 @@ const LocationPanel = (function() {
         const elements = getElements();
         
         // Initialize panel state
-        if (isExpanded) {
-            elements.panel.classList.add('expanded');
-            elements.content.style.display = 'block';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-        } else {
-            elements.panel.classList.add('collapsed');
-            elements.content.style.display = 'none';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        if (elements.panel && elements.content && elements.toggleBtn) {
+            if (isExpanded) {
+                elements.panel.classList.add('expanded');
+                elements.content.style.display = 'block';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            } else {
+                elements.panel.classList.add('collapsed');
+                elements.content.style.display = 'none';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            }
         }
     }
 

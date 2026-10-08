@@ -81,7 +81,7 @@ const MapModule = (function() {
         const clearBtn = document.getElementById('btn-clear-selection');
 
         if (mapSelectionMode) {
-            btn?.classList.add('active');
+            if (btn) btn.classList.add('active');
             view.cursor = 'crosshair';
             Helpers.log('📍 Clique no mapa para selecionar as coordenadas');
 
@@ -114,13 +114,27 @@ const MapModule = (function() {
             window.AppModule.updateWeatherData(lat, lng);
         }
 
+        // Also update autonomous panels
+        if (typeof window.OpenMeteoPanel !== 'undefined') {
+            window.OpenMeteoPanel.updatePanel(lat, lng);
+        }
+        if (typeof window.IPMAPanel !== 'undefined') {
+            window.IPMAPanel.updatePanel(lat, lng);
+        }
+        if (typeof window.LocationPanel !== 'undefined') {
+            window.LocationPanel.setLocation(lat, lng, 'Localização Selecionada');
+        }
+
         Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        
+        // Exit selection mode after clicking
+        exitMapSelectionMode();
     }
 
     function exitMapSelectionMode() {
         mapSelectionMode = false;
         const btn = document.getElementById('btn-map-select');
-        btn?.classList.remove('active');
+        if (btn) btn.classList.remove('active');
         if (view) view.cursor = 'auto';
 
         if (clickEventHandle) {
