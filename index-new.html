@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteo Portugal - Windy Style</title>
+
+    <!-- ArcGIS 5.1.26 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/@arcgis/core/themes/light/main.css">
+    <script src="https://js.arcgis.com/5.1.26/"></script>
+    <script type="module">
+        import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
+        import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
+        import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
+        import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
+        import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
+        import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
+        import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
+        window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic };
+    </script>
+
+    <!-- CSS Moderno (Windy Style) -->
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Material+Icons&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="windy-container">
+        <div id="map-view" class="windy-map"></div>
+
+        <!-- ===== Autonomous Panels Container =====
+        <div class="autonomous-panels-container">
+            <!-- OpenMeteo Autonomous Panel -->
+            <div id="openmeteo-panel" class="autonomous-panel expanded">
+                <div class="panel-header-small" id="openmeteo-panel-header">
+                    <h2>🌤️ OpenMeteo - Condições Detalhadas</h2>
+                    <button id="openmeteo-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="openmeteo-panel-content" class="panel-content">
+                    <div id="openmeteo-loading" class="loading-spinner" style="display:none;">
+                        <div class="spinner"></div>
+                        <p>A carregar dados OpenMeteo...</p>
+                    </div>
+                    
+                    <div class="weather-section">
+                        <h3>🌡️ Condições Atuais</h3>
+                        <div id="openmeteo-current-data" class="weather-grid"></div>
+                    </div>
+
+                    <div class="weather-section">
+                        <h3>⏰ Previsão 24 Horas</h3>
+                        <div id="openmeteo-hourly-data" class="hourly-scroll"></div>
+                    </div>
+
+                    <div class="weather-section">
+                        <h3>📅 Previsão 3 Dias</h3>
+                        <div id="openmeteo-daily-3-data" class="forecast-scroll"></div>
+                    </div>
+
+                    <div class="weather-section">
+                        <h3>📅 Previsão 5 Dias</h3>
+                        <div id="openmeteo-daily-5-data" class="forecast-scroll"></div>
+                    </div>
+
+                    <div class="weather-section">
+                        <h3>📅 Previsão 7 Dias</h3>
+                        <div id="openmeteo-daily-7-data" class="forecast-scroll"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IPMA Autonomous Panel -->
+            <div id="ipma-panel" class="autonomous-panel expanded">
+                <div class="panel-header-small" id="ipma-panel-header">
+                    <h2>⚠️ Alertas IPMA</h2>
+                    <button id="ipma-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="ipma-panel-content" class="panel-content">
+                    <div id="ipma-loading" class="loading-spinner" style="display:none;">
+                        <div class="spinner"></div>
+                        <p>A carregar alertas IPMA...</p>
+                    </div>
+                    
+                    <div class="alert-filters">
+                        <select id="ipma-district-filter" class="form-select">
+                            <option value="">Todos os Distritos</option>
+                        </select>
+                    </div>
+                    
+                    <div id="ipma-alerts-data" class="alerts-scroll"></div>
+                    
+                    <div class="weather-section">
+                        <h3>📅 Previsão IPMA</h3>
+                        <select id="ipma-forecast-days" class="form-select">
+                            <option value="1">Hoje</option>
+                            <option value="3" selected>3 Dias</option>
+                            <option value="5">5 Dias</option>
+                            <option value="7">7 Dias</option>
+                        </select>
+                        <div id="ipma-forecast-data" class="forecast-scroll"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Autonomous Panel -->
+            <div id="location-panel" class="autonomous-panel expanded">
+                <div class="panel-header-small" id="location-panel-header">
+                    <h2>📍 Localização</h2>
+                    <button id="location-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="location-panel-content" class="panel-content">
+                    <div class="location-content">
+                        <div class="location-search">
+                            <input type="text" id="location-search-input" placeholder="Pesquisar cidade ou coordenadas...">
+                            <button id="location-search-btn" class="btn-search"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="location-info">
+                            <p><strong>Lat:</strong> <span id="location-lat-display">--</span></p>
+                            <p><strong>Lng:</strong> <span id="location-lng-display">--</span></p>
+                            <p><strong>Local:</strong> <span id="location-name-display">--</span></p>
+                        </div>
+                        <div class="location-buttons">
+                            <button id="location-gps-btn" class="btn-gps">
+                                <i class="fas fa-location-arrow"></i> Usar Minha Localização
+                            </button>
+                            <button id="location-map-select-btn" class="btn-gps">
+                                <i class="fas fa-crosshairs"></i> Selecionar no Mapa
+                            </button>
+                            <button id="location-clear-selection-btn" class="btn-gps" style="display:none;">
+                                <i class="fas fa-times"></i> Limpar Seleção
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="basemap-panel">
+            <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa Topográfico">
+                <i class="fas fa-map"></i>
+            </button>
+            <button id="basemap-satellite" class="basemap-btn" data-basemap="satellite" title="Satélite">
+                <i class="fas fa-satellite"></i>
+            </button>
+            <button id="basemap-terrain" class="basemap-btn" data-basemap="terrain" title="Terreno">
+                <i class="fas fa-mountain"></i>
+            </button>
+        </div>
+
+        <div class="attribution-panel">
+            <div class="data-sources">
+                <span>🌍 <strong>Mapas:</strong> Esri</span>
+                <span>⚠️ <strong>Alertas:</strong> IPMA</span>
+                <span>🌤️ <strong>Dados:</strong> OpenMeteo</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load all panel modules -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/panels/location-panel.js"></script>
+    <script type="module" src="js/panels/openmeteo-panel.js"></script>
+    <script type="module" src="js/panels/ipma-panel.js"></script>
+    <script type="module" src="js/map.js"></script>
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>

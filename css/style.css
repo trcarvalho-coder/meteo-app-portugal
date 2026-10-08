@@ -769,6 +769,205 @@ html, body {
     }
 }
 
+/* ===== Autonomous Panels ===== */
+.autonomous-panels-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    width: 100%;
+}
+
+.autonomous-panel {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow-color);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.autonomous-panel.expanded {
+    animation: slideDown 0.3s ease;
+}
+
+.autonomous-panel.collapsed {
+    animation: slideUp 0.3s ease;
+}
+
+.autonomous-panel .panel-header-small {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.autonomous-panel .panel-header-small h2 {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.panel-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.panel-toggle-btn:hover {
+    background: var(--glass-effect);
+    color: var(--text-color);
+}
+
+.panel-content {
+    padding: 15px;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+/* Location Panel Specific */
+.location-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.location-search {
+    display: flex;
+    gap: 5px;
+}
+
+.location-search input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.location-search input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.btn-search {
+    padding: 10px 15px;
+    border: none;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-search:hover {
+    background: var(--primary-dark);
+}
+
+.location-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    background: var(--glass-effect);
+    border-radius: 8px;
+}
+
+.location-info p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.location-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-gps {
+    padding: 10px 15px;
+    border: none;
+    background: var(--success-color);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.btn-gps:hover {
+    background: #27ae60;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Responsive for Autonomous Panels */
+@media (max-width: 1200px) {
+    .autonomous-panels-container {
+        max-width: 350px;
+    }
+}
+
+@media (max-width: 992px) {
+    .autonomous-panels-container {
+        position: fixed;
+        top: auto;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        max-width: none;
+        flex-direction: column;
+    }
+    
+    .autonomous-panel {
+        max-width: none;
+    }
+}
+
+
 @media (max-width: 992px) {
     .windy-control-panel {
         position: fixed;
