@@ -11,17 +11,23 @@ const AppModule = (function() {
     let currentWeatherData = null;
     let currentForecastData = null;
     let currentAlertsData = [];
-    let activeTab = 'map';
+    let activePanel = 'current';
 
     // Inicializar a aplicação
     async function init() {
         try {
-            console.log('🚀 Inicializando aplicação...');
+            Helpers.log('🚀 Inicializando aplicação...');
+
+            // Testar conexão com IPMA
+            const ipmaConnected = await IPMAModule.testIPMAConnection();
+            if (!ipmaConnected) {
+                alert('⚠️ Não foi possível conectar à API do IPMA. A aplicação pode não funcionar corretamente.');
+            }
 
             // Inicializar o mapa
             const mapResult = MapModule.init();
             if (!mapResult) {
-                console.error('❌ Falha ao inicializar mapa');
+                Helpers.showError('Falha ao inicializar mapa');
                 return;
             }
 
@@ -34,18 +40,26 @@ const AppModule = (function() {
             // Iniciar atualizações periódicas
             startPeriodicUpdates();
 
-            console.log('✅ Aplicação inicializada com sucesso!');
+            Helpers.log('✅ Aplicação inicializada com sucesso!');
         } catch (error) {
-            console.error('❌ Falha ao inicializar aplicação:', error);
+            Helpers.showError('Falha ao inicializar aplicação', error);
         }
     }
 
     // Configurar event listeners
     function setupEventListeners() {
-        // Navegação entre tabs
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                switchTab(tab.dataset.tab);
+        // Botões do painel de controle
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panelId = btn.dataset.panel;
+                switchPanel(panelId);
+            });
+        });
+
+        // Botões de basemap
+        document.querySelectorAll('.basemap-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                MapModule.changeBasemap(btn.dataset.basemap);
             });
         });
 
@@ -65,26 +79,14 @@ const AppModule = (function() {
             });
         }
 
-        // Filtros de alertas
+        // Filtro de alertas
         const alertDistrict = document.getElementById('alert-district');
-        const alertType = document.getElementById('alert-type');
-
         if (alertDistrict) {
             alertDistrict.addEventListener('change', filterAlerts);
         }
 
-        if (alertType) {
-            alertType.addEventListener('change', filterAlerts);
-        }
-
-        // Seletores de previsão
-        const forecastSource = document.getElementById('forecast-source');
+        // Filtro de previsão
         const forecastDays = document.getElementById('forecast-days');
-
-        if (forecastSource) {
-            forecastSource.addEventListener('change', loadForecastData);
-        }
-
         if (forecastDays) {
             forecastDays.addEventListener('change', loadForecastData);
         }
@@ -93,7 +95,7 @@ const AppModule = (function() {
     // Carregar dados iniciais
     async function loadInitialData() {
         try {
-            console.log('📥 Carregando dados iniciais...');
+            Helpers.log('📥 Carregando dados iniciais...');
 
             // Carregar dados para localização padrão
             await updateWeatherData(currentLocation.lat, currentLocation.lng);
@@ -104,23 +106,33 @@ const AppModule = (function() {
             // Popular dropdown de distritos
             populateDistrictDropdown();
 
-            console.log('✅ Dados iniciais carregados!');
+            Helpers.log('✅ Dados iniciais carregados!');
         } catch (error) {
-            console.error('❌ Falha ao carregar dados iniciais:', error);
+            Helpers.showError('Falha ao carregar dados iniciais', error);
         }
     }
 
     // Carregar alertas
     async function loadAlerts() {
         try {
+            Helpers.log('Carregando alertas do IPMA...');
             const alerts = await IPMAModule.loadAlerts();
+
             if (alerts) {
                 currentAlertsData = alerts;
                 displayAlerts(alerts);
                 MapModule.addAlertsToMap(alerts);
+
+                // Atualizar badge de alertas
+                const activeAlerts = alerts.filter(a => a.level >= 2).length;
+                const badgeEl = document.getElementById('alerts-badge');
+                if (badgeEl) {
+                    badgeEl.textContent = activeAlerts > 0 ? activeAlerts : '';
+                    badgeEl.style.display = activeAlerts > 0 ? 'inline' : 'none';
+                }
             }
         } catch (error) {
-            console.error('❌ Falha ao carregar alertas:', error);
+            Helpers.showError('Falha ao carregar alertas', error);
         }
     }
 
@@ -129,8 +141,9 @@ const AppModule = (function() {
         try {
             currentLocation = { lat: latitude, lng: longitude, name: 'Localização' };
 
-            // Carregar condições atuais
+            // Carregar condições atuais do OpenMeteo
             const currentConditions = await OpenMeteoModule.loadCurrentConditions(latitude, longitude);
+
             if (currentConditions) {
                 currentWeatherData = currentConditions;
                 displayCurrentConditions(currentConditions);
@@ -142,18 +155,18 @@ const AppModule = (function() {
             await loadForecastData();
 
         } catch (error) {
-            console.error('❌ Falha ao atualizar dados meteorológicos:', error);
+            Helpers.showError('Falha ao atualizar dados meteorológicos', error);
         }
     }
 
     // Carregar dados de previsão
     async function loadForecastData() {
         try {
-            const forecastDays = parseInt(document.getElementById('forecast-days')?.value) || 3;
+            const days = parseInt(document.getElementById('forecast-days')?.value) || 3;
             const forecast = await OpenMeteoModule.loadDailyForecast(
                 currentLocation.lat,
                 currentLocation.lng,
-                forecastDays
+                days
             );
 
             if (forecast) {
@@ -161,7 +174,37 @@ const AppModule = (function() {
                 displayForecast(forecast);
             }
         } catch (error) {
-            console.error('❌ Falha ao carregar previsão:', error);
+            Helpers.showError('Falha ao carregar previsão', error);
+        }
+    }
+
+    // Trocar de painel
+    function switchPanel(panelId) {
+        // Esconder todos os painéis
+        document.querySelectorAll('.info-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        // Mostrar o painel selecionado
+        const targetPanel = document.getElementById(`panel-${panelId}`);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+        }
+
+        // Atualizar botão ativo
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.panel === panelId);
+        });
+
+        activePanel = panelId;
+
+        // Carregar dados do painel se necessário
+        if (panelId === 'alerts') {
+            loadAlerts();
+        } else if (panelId === 'forecast') {
+            loadForecastData();
+        } else if (panelId === 'current' && currentLocation) {
+            updateWeatherData(currentLocation.lat, currentLocation.lng);
         }
     }
 
@@ -180,7 +223,11 @@ const AppModule = (function() {
                 { name: 'Guarda', lat: 40.5370, lng: -7.2671 },
                 { name: 'Beja', lat: 38.0153, lng: -7.8632 },
                 { name: 'Setúbal', lat: 38.5244, lng: -8.8882 },
-                { name: 'Leiria', lat: 39.7445, lng: -8.8051 }
+                { name: 'Leiria', lat: 39.7445, lng: -8.8051 },
+                { name: 'Castelo Branco', lat: 39.8222, lng: -7.4914 },
+                { name: 'Portalegre', lat: 39.2966, lng: -7.4306 },
+                { name: 'Viana do Castelo', lat: 41.6945, lng: -8.8308 },
+                { name: 'Vila Real', lat: 41.3010, lng: -7.7503 }
             ];
 
             const location = locations.find(loc =>
@@ -192,6 +239,7 @@ const AppModule = (function() {
                 const locationSearch = document.getElementById('location-search');
                 if (locationSearch) locationSearch.value = location.name;
             } else {
+                // Tentar parse como coordenadas
                 const coords = query.split(',').map(s => parseFloat(s.trim()));
                 if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                     await updateWeatherData(coords[0], coords[1]);
@@ -200,135 +248,38 @@ const AppModule = (function() {
                 }
             }
         } catch (error) {
-            console.error('❌ Falha ao pesquisar localização:', error);
-        }
-    }
-
-    // Trocar de tab
-    function switchTab(tabId) {
-        activeTab = tabId;
-
-        // Atualizar tabs ativos
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabId);
-        });
-
-        // Atualizar conteúdo ativo
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === `${tabId}-tab`);
-        });
-
-        // Carregar dados da tab
-        if (tabId === 'alerts') {
-            loadAlerts();
-        } else if (tabId === 'forecast') {
-            loadForecastData();
-        } else if (tabId === 'current' && currentLocation) {
-            updateWeatherData(currentLocation.lat, currentLocation.lng);
+            Helpers.showError('Falha ao pesquisar localização', error);
         }
     }
 
     // Exibir condições atuais
     function displayCurrentConditions(conditions) {
-        const setValue = (id, value, unit = '') => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value !== null && value !== undefined ? value + unit : '--';
-        };
+        const tempEl = document.getElementById('current-temp');
+        const descEl = document.getElementById('current-desc');
+        const humidityEl = document.getElementById('current-humidity');
+        const windEl = document.getElementById('current-wind');
+        const directionEl = document.getElementById('current-direction');
+        const precipEl = document.getElementById('current-precip');
+        const iconEl = document.getElementById('current-weather-icon');
 
-        setValue('temp-value', Math.round(conditions.temperature));
-        setValue('humidity-value', Math.round(conditions.humidity), '%');
-        setValue('wind-speed', Math.round(conditions.windSpeed * 3.6));
-        setValue('precipitation-value', conditions.precipitation ? conditions.precipitation.toFixed(1) : '0');
-        setValue('feels-like', Math.round(conditions.apparentTemperature));
-        setValue('wind-direction', Helpers.getWindDirection(conditions.windDirection));
-
-        const pressureEl = document.getElementById('pressure-value');
-        if (pressureEl) pressureEl.textContent = conditions.pressure ? `${Math.round(conditions.pressure)} hPa` : '--';
-
-        const visibilityEl = document.getElementById('visibility-value');
-        if (visibilityEl) visibilityEl.textContent = conditions.visibility ? `${(conditions.visibility / 1000).toFixed(1)} km` : '--';
-
-        const uvEl = document.getElementById('uv-index');
-        if (uvEl) uvEl.textContent = conditions.uvIndex ? Math.round(conditions.uvIndex) : '--';
-
-        const cloudEl = document.getElementById('cloud-cover');
-        if (cloudEl) cloudEl.textContent = conditions.cloudCover ? `${Math.round(conditions.cloudCover)}%` : '--';
-    }
-
-    // Exibir previsão
-    function displayForecast(forecast) {
-        const forecastContent = document.getElementById('forecast-content');
-        if (!forecastContent) return;
-
-        forecastContent.innerHTML = '';
-        if (!forecast || forecast.length === 0) {
-            forecastContent.innerHTML = '<p class="text-center">Sem dados de previsão disponíveis</p>';
-            return;
-        }
-
-        const forecastDays = document.createElement('div');
-        forecastDays.className = 'forecast-days';
-
-        forecast.forEach(dayData => {
-            const dayElement = document.createElement('div');
-            dayElement.className = 'forecast-day';
-
-            const formattedDate = new Date(dayData.date).toLocaleDateString('pt-PT', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'forecast-day-header';
-            dayHeader.innerHTML = `
-                <div class="forecast-day-date">${formattedDate}</div>
-                <div class="forecast-day-summary">${dayData.weatherDescription || 'Desconhecido'}</div>
-            `;
-
-            const dayDetails = document.createElement('div');
-            dayDetails.className = 'forecast-day-details';
-            dayDetails.innerHTML = `
-                <div class="forecast-detail">
-                    <span class="detail-label">Máx:</span>
-                    <span class="detail-value">${dayData.maxTemp ? Math.round(dayData.maxTemp) + '°C' : '--'}</span>
-                </div>
-                <div class="forecast-detail">
-                    <span class="detail-label">Mín:</span>
-                    <span class="detail-value">${dayData.minTemp ? Math.round(dayData.minTemp) + '°C' : '--'}</span>
-                </div>
-                <div class="forecast-detail">
-                    <span class="detail-label">Precipitação:</span>
-                    <span class="detail-value">${dayData.precipitation ? dayData.precipitation.toFixed(1) + ' mm' : '0 mm'}</span>
-                </div>
-                <div class="forecast-detail">
-                    <span class="detail-label">Vento:</span>
-                    <span class="detail-value">${dayData.windSpeed ? Math.round(dayData.windSpeed * 3.6) + ' km/h' : '--'}</span>
-                </div>
-            `;
-
-            const weatherIcon = document.createElement('div');
-            weatherIcon.className = 'forecast-weather-icon';
-            weatherIcon.textContent = dayData.weatherIcon || '🌦️';
-            weatherIcon.style.fontSize = '2rem';
-
-            dayElement.appendChild(dayHeader);
-            dayElement.appendChild(weatherIcon);
-            dayElement.appendChild(dayDetails);
-            forecastDays.appendChild(dayElement);
-        });
-
-        forecastContent.appendChild(forecastDays);
+        if (tempEl) tempEl.textContent = Math.round(conditions.temperature || 0);
+        if (descEl) descEl.textContent = conditions.weatherDescription || 'Desconhecido';
+        if (humidityEl) humidityEl.textContent = Math.round(conditions.humidity || 0);
+        if (windEl) windEl.textContent = Math.round((conditions.windSpeed || 0) * 3.6);
+        if (directionEl) directionEl.textContent = Helpers.getWindDirection(conditions.windDirection);
+        if (precipEl) precipEl.textContent = (conditions.precipitation || 0).toFixed(1);
+        if (iconEl) iconEl.textContent = conditions.weatherIcon || '🌦️';
     }
 
     // Exibir alertas
     function displayAlerts(alerts) {
-        const alertsList = document.getElementById('alerts-list');
-        if (!alertsList) return;
+        const alertsContainer = document.getElementById('alerts-container');
+        if (!alertsContainer) return;
 
-        alertsList.innerHTML = '';
+        alertsContainer.innerHTML = '';
+
         if (!alerts || alerts.length === 0) {
-            alertsList.innerHTML = '<p class="text-center">Sem alertas ativos no momento</p>';
+            alertsContainer.innerHTML = '<p class="text-center">✅ Sem alertas ativos no momento</p>';
             return;
         }
 
@@ -336,7 +287,7 @@ const AppModule = (function() {
             const alertCard = document.createElement('div');
             alertCard.className = `alert-card alert-level-${alert.level}`;
 
-            const startDate = new Date(alert.startDate).toLocaleString('pt-PT');
+            const startDate = new Date(alert.startDate).toLocaleString('pt-PT);
             const endDate = new Date(alert.endDate).toLocaleString('pt-PT');
             const alertTypeInfo = Config.ipma.alertTypes[alert.type] || { name: 'Desconhecido', icon: '⚠️' };
             const levelNames = ['', 'Minor', 'Moderado', 'Severo', 'Extremo'];
@@ -354,21 +305,17 @@ const AppModule = (function() {
                     <div><strong>Fim:</strong> ${endDate}</div>
                 </div>
             `;
-            alertsList.appendChild(alertCard);
+
+            alertsContainer.appendChild(alertCard);
         });
     }
 
     // Filtrar alertas
     function filterAlerts() {
         const districtFilter = document.getElementById('alert-district')?.value || '';
-        const typeFilter = document.getElementById('alert-type')?.value || '';
-
         const filteredAlerts = currentAlertsData.filter(alert => {
-            const districtMatch = !districtFilter || alert.districtId === districtFilter;
-            const typeMatch = !typeFilter || alert.type === typeFilter;
-            return districtMatch && typeMatch;
+            return !districtFilter || alert.districtId === districtFilter;
         });
-
         displayAlerts(filteredAlerts);
     }
 
@@ -389,6 +336,57 @@ const AppModule = (function() {
         });
     }
 
+    // Exibir previsão
+    function displayForecast(forecast) {
+        const forecastContainer = document.getElementById('forecast-container');
+        if (!forecastContainer) return;
+
+        forecastContainer.innerHTML = '';
+        if (!forecast || forecast.length === 0) {
+            forecastContainer.innerHTML = '<p class="text-center">Sem dados de previsão disponíveis</p>';
+            return;
+        }
+
+        forecast.forEach(dayData => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'forecast-day';
+
+            const formattedDate = Helpers.formatDate(dayData.date);
+
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'forecast-day-header';
+            dayHeader.innerHTML = `
+                <div class="forecast-day-date">${formattedDate}</div>
+                <div class="forecast-day-summary">${dayData.weatherDescription || 'Desconhecido'}</div>
+            `;
+
+            const dayDetails = document.createElement('div');
+            dayDetails.className = 'forecast-details';
+            dayDetails.innerHTML = `
+                <div class="forecast-detail">
+                    <span class="detail-label">Máx:</span>
+                    <span class="detail-value">${dayData.maxTemp ? Math.round(dayData.maxTemp) + '°C' : '--'}</span>
+                </div>
+                <div class="forecast-detail">
+                    <span class="detail-label">Mín:</span>
+                    <span class="detail-value">${dayData.minTemp ? Math.round(dayData.minTemp) + '°C' : '--'}</span>
+                </div>
+                <div class="forecast-detail">
+                    <span class="detail-label">Precipitação:</span>
+                    <span class="detail-value">${dayData.precipitation ? dayData.precipitation.toFixed(1) + ' mm' : '0 mm'}</span>
+                </div>
+                <div class="forecast-detail">
+                    <span class="detail-label">Vento:</span>
+                    <span class="detail-value">${dayData.windSpeed ? Math.round(dayData.windSpeed * 3.6) + ' km/h' : '--'}</span>
+                </div>
+            `;
+
+            dayElement.appendChild(dayHeader);
+            dayElement.appendChild(dayDetails);
+            forecastContainer.appendChild(dayElement);
+        });
+    }
+
     // Iniciar atualizações periódicas
     function startPeriodicUpdates() {
         setInterval(async () => {
@@ -405,7 +403,7 @@ const AppModule = (function() {
         updateWeatherData,
         loadAlerts,
         loadForecastData,
-        switchTab,
+        switchPanel,
         searchLocation,
         getCurrentWeather: () => currentWeatherData,
         getCurrentForecast: () => currentForecastData,
