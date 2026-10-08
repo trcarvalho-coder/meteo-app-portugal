@@ -10,7 +10,6 @@ const MapModule = (function() {
     let currentLocation = Config.app.defaultLocation;
     let weatherLayer, alertsLayer;
     let mapSelectionMode = false;
-    let selectionClickHandler = null;
     let clickEventHandle = null;
 
     async function init() {
