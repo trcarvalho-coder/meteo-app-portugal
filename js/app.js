@@ -204,6 +204,9 @@ const AppModule = (function() {
             loadAlerts();
         } else if (panelId === 'forecast') {
             loadForecastData();
+        } else if (panelId === 'location') {
+            // Update location info when switching to location panel
+            MapModule.updateLocationInfo();
         } else if (panelId === 'current' && currentLocation) {
             updateWeatherData(currentLocation.lat, currentLocation.lng);
         }
@@ -250,6 +253,8 @@ const AppModule = (function() {
                 const coords = trimmedQuery.split(',').map(s => parseFloat(s.trim()));
                 if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                     await updateWeatherData(coords[0], coords[1]);
+                    const locationSearch = document.getElementById('location-search');
+                    if (locationSearch) locationSearch.value = '';
                 } else {
                     alert('⚠️ Localização não encontrada. Tente um nome de cidade ou coordenadas (lat, lng).');
                 }
