@@ -12,6 +12,7 @@ const AppModule = (function() {
     let currentForecastData = null;
     let currentAlertsData = [];
     let activePanel = 'current';
+    let periodicUpdateInterval = null;
 
     // Inicializar a aplicação
     async function init() {
@@ -72,8 +73,9 @@ const AppModule = (function() {
                 searchLocation(locationSearch.value);
             });
 
-            locationSearch.addEventListener('keypress', (e) => {
+            locationSearch.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     searchLocation(locationSearch.value);
                 }
             });
@@ -153,7 +155,6 @@ const AppModule = (function() {
 
             // Carregar previsão
             await loadForecastData();
-
         } catch (error) {
             Helpers.showError('Falha ao atualizar dados meteorológicos', error);
         }
@@ -211,6 +212,12 @@ const AppModule = (function() {
     // Pesquisar localização
     async function searchLocation(query) {
         try {
+            const trimmedQuery = (query || '').trim();
+            if (!trimmedQuery) {
+                alert('⚠️ Introduza uma localização ou coordenadas.');
+                return;
+            }
+
             const locations = [
                 { name: 'Lisboa', lat: 38.7223, lng: -9.1393 },
                 { name: 'Porto', lat: 41.1496, lng: -8.6110 },
@@ -231,7 +238,7 @@ const AppModule = (function() {
             ];
 
             const location = locations.find(loc =>
-                loc.name.toLowerCase().includes(query.toLowerCase())
+                loc.name.toLowerCase().includes(trimmedQuery.toLowerCase())
             );
 
             if (location) {
@@ -240,7 +247,7 @@ const AppModule = (function() {
                 if (locationSearch) locationSearch.value = location.name;
             } else {
                 // Tentar parse como coordenadas
-                const coords = query.split(',').map(s => parseFloat(s.trim()));
+                const coords = trimmedQuery.split(',').map(s => parseFloat(s.trim()));
                 if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                     await updateWeatherData(coords[0], coords[1]);
                 } else {
@@ -314,7 +321,7 @@ const AppModule = (function() {
     function filterAlerts() {
         const districtFilter = document.getElementById('alert-district')?.value || '';
         const filteredAlerts = currentAlertsData.filter(alert => {
-            return !districtFilter || alert.districtId === districtFilter;
+            return !districtFilter || String(alert.districtId) === String(districtFilter);
         });
         displayAlerts(filteredAlerts);
     }
@@ -365,19 +372,19 @@ const AppModule = (function() {
             dayDetails.innerHTML = `
                 <div class="forecast-detail">
                     <span class="detail-label">Máx:</span>
-                    <span class="detail-value">${dayData.maxTemp ? Math.round(dayData.maxTemp) + '°C' : '--'}</span>
+                    <span class="detail-value">${dayData.maxTemp != null ? Math.round(dayData.maxTemp) + '°C' : '--'}</span>
                 </div>
                 <div class="forecast-detail">
                     <span class="detail-label">Mín:</span>
-                    <span class="detail-value">${dayData.minTemp ? Math.round(dayData.minTemp) + '°C' : '--'}</span>
+                    <span class="detail-value">${dayData.minTemp != null ? Math.round(dayData.minTemp) + '°C' : '--'}</span>
                 </div>
                 <div class="forecast-detail">
                     <span class="detail-label">Precipitação:</span>
-                    <span class="detail-value">${dayData.precipitation ? dayData.precipitation.toFixed(1) + ' mm' : '0 mm'}</span>
+                    <span class="detail-value">${dayData.precipitation != null ? dayData.precipitation.toFixed(1) + ' mm' : '0 mm'}</span>
                 </div>
                 <div class="forecast-detail">
                     <span class="detail-label">Vento:</span>
-                    <span class="detail-value">${dayData.windSpeed ? Math.round(dayData.windSpeed * 3.6) + ' km/h' : '--'}</span>
+                    <span class="detail-value">${dayData.windSpeed != null ? Math.round(dayData.windSpeed * 3.6) + ' km/h' : '--'}</span>
                 </div>
             `;
 
@@ -389,7 +396,11 @@ const AppModule = (function() {
 
     // Iniciar atualizações periódicas
     function startPeriodicUpdates() {
-        setInterval(async () => {
+        if (periodicUpdateInterval) {
+            clearInterval(periodicUpdateInterval);
+        }
+
+        periodicUpdateInterval = setInterval(async () => {
             if (currentLocation) {
                 await updateWeatherData(currentLocation.lat, currentLocation.lng);
                 await loadAlerts();
