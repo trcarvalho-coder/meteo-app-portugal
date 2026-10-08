@@ -77,12 +77,6 @@ const MapModule = (function() {
         document.getElementById('basemap-terrain')?.addEventListener('click', () => {
             changeBasemap(Config.arcgis.basemaps.terrain);
         });
-
-        // Botão de localização
-        document.getElementById('btn-gps')?.addEventListener('click', getCurrentLocation);
-
-        // Botão de seleção de localização no mapa
-        document.getElementById('btn-map-select')?.addEventListener('click', toggleMapSelectionMode);
     }
 
     // Alternar modo de seleção de localização no mapa
@@ -99,7 +93,7 @@ const MapModule = (function() {
             // Entrar em modo de seleção
             btn?.classList.add('active');
             view.cursor = 'crosshair';
-            Helpers.log('Clique no mapa para selecionar as coordenadas');
+            Helpers.log('📍 Clique no mapa para selecionar as coordenadas');
 
             // Remover handler anterior se existir
             if (selectionClickHandler) {
@@ -113,6 +107,9 @@ const MapModule = (function() {
                 
                 // Atualizar localização
                 currentLocation = { lat: parseFloat(lat), lng: parseFloat(lng), name: 'Localização Selecionada' };
+                
+                // Limpar camada de seleção anterior
+                weatherLayer.removeAll();
                 
                 // Adicionar marcador
                 addLocationMarker(parseFloat(lng), parseFloat(lat), 'Localização Selecionada');
@@ -128,7 +125,7 @@ const MapModule = (function() {
                     window.AppModule.updateWeatherData(parseFloat(lat), parseFloat(lng));
                 }
                 
-                Helpers.log(`📍 Coordenadas selecionadas: ${lat}, ${lng}`);
+                Helpers.log(`✅ Coordenadas selecionadas: ${lat}, ${lng}`);
             };
 
             view.on('click', selectionClickHandler);
@@ -191,6 +188,7 @@ const MapModule = (function() {
                         zoom: 12
                     });
 
+                    weatherLayer.removeAll();
                     addLocationMarker(lng, lat, 'Sua Localização');
                     updateLocationInfo();
 
