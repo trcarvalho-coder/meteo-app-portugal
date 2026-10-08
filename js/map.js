@@ -67,6 +67,7 @@ const MapModule = (function() {
         });
 
         document.getElementById('btn-gps')?.addEventListener('click', getCurrentLocation);
+        document.getElementById('btn-clear-selection')?.addEventListener('click', clearMapSelection);
     }
 
     function toggleMapSelectionMode() {
@@ -77,6 +78,7 @@ const MapModule = (function() {
 
         mapSelectionMode = !mapSelectionMode;
         const btn = document.getElementById('btn-map-select');
+        const clearBtn = document.getElementById('btn-clear-selection');
 
         if (mapSelectionMode) {
             btn?.classList.add('active');
@@ -95,6 +97,14 @@ const MapModule = (function() {
                 weatherLayer.removeAll();
                 addLocationMarker(lng, lat, 'Localização Selecionada');
                 updateLocationInfo();
+
+                const locationSearch = document.getElementById('location-search');
+                if (locationSearch) {
+                    locationSearch.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                }
+
+                if (clearBtn) clearBtn.style.display = 'inline-block';
+
                 exitMapSelectionMode();
 
                 if (typeof window.AppModule !== 'undefined') {
@@ -120,6 +130,24 @@ const MapModule = (function() {
             view?.off('click', selectionClickHandler);
             selectionClickHandler = null;
         }
+    }
+
+    function clearMapSelection() {
+        const locationSearch = document.getElementById('location-search');
+        const clearBtn = document.getElementById('btn-clear-selection');
+        const latEl = document.getElementById('location-lat');
+        const lngEl = document.getElementById('location-lng');
+        const nameEl = document.getElementById('location-name');
+
+        if (locationSearch) locationSearch.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+        if (latEl) latEl.textContent = '--';
+        if (lngEl) lngEl.textContent = '--';
+        if (nameEl) nameEl.textContent = '--';
+
+        weatherLayer.removeAll();
+        exitMapSelectionMode();
+        Helpers.log('🔄 Seleção limpa');
     }
 
     function changeBasemap(basemapId) {
@@ -161,6 +189,11 @@ const MapModule = (function() {
                     weatherLayer.removeAll();
                     addLocationMarker(lng, lat, 'Sua Localização');
                     updateLocationInfo();
+
+                    const locationSearch = document.getElementById('location-search');
+                    if (locationSearch) {
+                        locationSearch.value = currentLocation.name;
+                    }
 
                     if (typeof window.AppModule !== 'undefined') {
                         window.AppModule.updateWeatherData(lat, lng);
@@ -332,6 +365,7 @@ const MapModule = (function() {
         updateLocationInfo,
         centerOnCoordinates,
         toggleMapSelectionMode,
+        clearMapSelection,
         getView: () => view,
         isInitialized: () => mapInitialized
     };

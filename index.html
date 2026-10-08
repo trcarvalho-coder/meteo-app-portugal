@@ -37,6 +37,10 @@
                     <i class="fas fa-thermometer-half"></i>
                     <span>Atual</span>
                 </button>
+                <button id="btn-openmeteo" class="control-btn" data-panel="openmeteo" title="OpenMeteo">
+                    <i class="fas fa-cloud"></i>
+                    <span>OpenMeteo</span>
+                </button>
                 <button id="btn-alerts" class="control-btn" data-panel="alerts" title="Alertas Meteorológicos">
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>Alertas</span>
@@ -85,6 +89,66 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panel-openmeteo" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>☁️ OpenMeteo - Condições Detalhadas</h2>
+                    </div>
+                    <div class="openmeteo-content">
+                        <div class="weather-section">
+                            <h3>🌡️ Condições Atuais</h3>
+                            <div id="openmeteo-current" class="weather-grid">
+                                <div class="weather-item">
+                                    <span class="label">Temperatura:</span>
+                                    <span class="value" id="openmeteo-temp">--°C</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Sensação Térmica:</span>
+                                    <span class="value" id="openmeteo-feels">--°C</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Nebulosidade:</span>
+                                    <span class="value" id="openmeteo-cloud">--%</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Precipitação:</span>
+                                    <span class="value" id="openmeteo-precip">-- mm</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Velocidade Vento:</span>
+                                    <span class="value" id="openmeteo-wind">-- km/h</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Rajada Vento:</span>
+                                    <span class="value" id="openmeteo-gust">-- km/h</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Direção Vento:</span>
+                                    <span class="value" id="openmeteo-wind-dir">--</span>
+                                </div>
+                                <div class="weather-item">
+                                    <span class="label">Pressão:</span>
+                                    <span class="value" id="openmeteo-pressure">-- hPa</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="weather-section">
+                            <h3>⏰ Previsão 24 Horas</h3>
+                            <div id="openmeteo-hourly" class="hourly-scroll"></div>
+                        </div>
+
+                        <div class="weather-section">
+                            <h3>⚠️ Alertas (7 Dias)</h3>
+                            <div id="openmeteo-alerts" class="alerts-scroll"></div>
+                        </div>
+
+                        <div class="weather-section">
+                            <h3>📅 Previsão 7 Dias</h3>
+                            <div id="openmeteo-daily" class="forecast-scroll"></div>
                         </div>
                     </div>
                 </div>
@@ -145,6 +209,9 @@
                         </button>
                         <button id="btn-map-select" class="btn-gps" type="button">
                             <i class="fas fa-crosshairs"></i> Selecionar no mapa
+                        </button>
+                        <button id="btn-clear-selection" class="btn-gps" type="button" style="display:none;">
+                            <i class="fas fa-times"></i> Limpar Seleção
                         </button>
                     </div>
                 </div>

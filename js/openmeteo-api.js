@@ -6,6 +6,8 @@ const OpenMeteoModule = (function() {
 
     let currentDataCache = {};
     let forecastCache = {};
+    let hourlyCache = {};
+    let alertsCache = {};
     const CACHE_DURATION = 300000;
 
     async function fetchData(endpoint, params = {}) {
@@ -49,6 +51,7 @@ const OpenMeteoModule = (function() {
             weatherCode: data.current.weather_code,
             windSpeed: data.current.wind_speed_10m,
             windDirection: data.current.wind_direction_10m,
+            windGust: data.current.wind_gusts_10m,
             pressure: data.current.pressure_msl,
             visibility: data.current.visibility,
             uvIndex: data.current.uv_index,
@@ -67,7 +70,51 @@ const OpenMeteoModule = (function() {
         return conditions;
     }
 
-    async function loadDailyForecast(latitude, longitude, days = 3, forceRefresh = false) {
+    async function loadHourlyForecast(latitude, longitude, forceRefresh = false) {
+        const cacheKey = `${latitude.toFixed(4)}-${longitude.toFixed(4)}-hourly`;
+        const now = Date.now();
+        const cached = hourlyCache[cacheKey];
+
+        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+            return cached.data;
+        }
+
+        const params = {
+            latitude: latitude,
+            longitude: longitude,
+            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover',
+            forecast_hours: 24,
+            timezone: 'Europe/Lisbon'
+        };
+
+        const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
+        if (!data || !data.hourly) return cached ? cached.data : [];
+
+        const hourly = [];
+        const hourlyData = data.hourly;
+
+        for (let i = 0; i < Math.min(24, hourlyData.time.length); i++) {
+            hourly.push({
+                time: new Date(hourlyData.time[i]),
+                temperature: hourlyData.temperature_2m[i],
+                weatherCode: hourlyData.weather_code[i],
+                windSpeed: hourlyData.wind_speed_10m[i],
+                windDirection: hourlyData.wind_direction_10m[i],
+                precipitation: hourlyData.precipitation[i],
+                cloudCover: hourlyData.cloud_cover[i],
+                weatherDescription: Helpers.getWeatherDescription(hourlyData.weather_code[i]),
+                weatherIcon: Helpers.getWeatherIcon(hourlyData.weather_code[i])
+            });
+        }
+
+        hourlyCache[cacheKey] = {
+            data: hourly,
+            timestamp: now
+        };
+        return hourly;
+    }
+
+    async function loadDailyForecast(latitude, longitude, days = 7, forceRefresh = false) {
         const cacheKey = `${latitude.toFixed(4)}-${longitude.toFixed(4)}-${days}`;
         const now = Date.now();
         const cached = forecastCache[cacheKey];
@@ -85,7 +132,7 @@ const OpenMeteoModule = (function() {
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
-        if (!data || !data.daily) return cached ? cached.data : null;
+        if (!data || !data.daily) return cached ? cached.data : [];
 
         const forecast = [];
         const dailyData = data.daily;
@@ -110,9 +157,50 @@ const OpenMeteoModule = (function() {
         return forecast;
     }
 
+    async function loadAlerts(latitude, longitude, forceRefresh = false) {
+        const cacheKey = `${latitude.toFixed(4)}-${longitude.toFixed(4)}-alerts`;
+        const now = Date.now();
+        const cached = alertsCache[cacheKey];
+
+        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+            return cached.data;
+        }
+
+        const params = {
+            latitude: latitude,
+            longitude: longitude
+        };
+
+        const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
+        if (!data || !data.alerts) {
+            alertsCache[cacheKey] = {
+                data: [],
+                timestamp: now
+            };
+            return [];
+        }
+
+        const alerts = data.alerts.map(alert => ({
+            event: alert.event || 'Alerta',
+            headline: alert.headline || '',
+            description: alert.description || '',
+            onset: new Date(alert.onset),
+            expires: new Date(alert.expires),
+            severity: alert.severity || 'unknown'
+        }));
+
+        alertsCache[cacheKey] = {
+            data: alerts,
+            timestamp: now
+        };
+        return alerts;
+    }
+
     return {
         loadCurrentConditions,
-        loadDailyForecast
+        loadDailyForecast,
+        loadHourlyForecast,
+        loadAlerts
     };
 })();
 
