@@ -363,6 +363,7 @@ const MapModule = (function() {
         centerOnCoordinates,
         toggleMapSelectionMode,
         clearMapSelection,
+        exitMapSelectionMode,
         getView: () => view,
         isInitialized: () => mapInitialized
     };
