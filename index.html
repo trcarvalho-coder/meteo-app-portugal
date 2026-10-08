@@ -3,197 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meteo Portugal - Aplicação Meteorológica</title>
+    <title>Meteo Portugal - Windy Style</title>
 
-    <!-- ArcGIS 5.1.26 CSS -->
-    <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/esri/themes/light/main.css">
+    <!-- ArcGIS 5.1.26 -->
+    <script type="module">
+        import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
+        import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
+        import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
+        import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
+        import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
+        import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
+        import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
+        window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic };
+    </script>
 
-    <!-- CSS da aplicação -->
+    <!-- CSS Moderno (Windy Style) -->
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Material+Icons&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
+    <!-- Container Principal -->
+    <div class="windy-container">
+        <!-- Mapa (sempre visível) -->
+        <div id="map-view" class="windy-map"></div>
+
+        <!-- Painel de Controle (lado esquerdo) -->
+        <div class="windy-control-panel">
+            <div class="panel-header">
                 <h1>⛅ Meteo Portugal</h1>
-                <p class="subtitle">Previsão e Alertas Meteorológicos em Tempo Real</p>
+                <p class="subtitle">Previsão em Tempo Real</p>
             </div>
-            <div class="header-controls">
-                <button id="btn-location" class="btn btn-primary" title="Localização Atual">
-                    <span class="icon">📍</span>
+
+            <!-- Botões Principais -->
+            <div class="main-buttons">
+                <button id="btn-current" class="control-btn active" data-panel="current" title="Condições Atuais">
+                    <i class="fas fa-thermometer-half"></i>
+                    <span>Atual</span>
                 </button>
-                <button id="btn-refresh" class="btn btn-secondary" title="Atualizar Dados">
-                    <span class="icon">🔄</span>
+                <button id="btn-alerts" class="control-btn" data-panel="alerts" title="Alertas Meteorológicos">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Alertas</span>
+                    <span id="alerts-badge" class="badge">0</span>
+                </button>
+                <button id="btn-forecast" class="control-btn" data-panel="forecast" title="Previsão">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Previsão</span>
+                </button>
+                <button id="btn-location" class="control-btn" data-panel="location" title="Localização">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Local</span>
                 </button>
             </div>
-        </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="nav-tabs">
-            <button class="nav-tab active" data-tab="map">🗺️ Mapa</button>
-            <button class="nav-tab" data-tab="alerts">⚠️ Alertas</button>
-            <button class="nav-tab" data-tab="current">🌡️ Condições Atuais</button>
-            <button class="nav-tab" data-tab="forecast">📅 Previsão</button>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Map Tab -->
-            <div id="map-tab" class="tab-content active">
-                <div id="map-view" class="map-container"></div>
-                <div class="map-overlay">
-                    <div class="map-controls">
-                        <div class="basemap-toggle">
-                            <button id="basemap-streets" class="basemap-btn active" data-basemap="arcgis-topographic">Ruas</button>
-                            <button id="basemap-satellite" class="basemap-btn" data-basemap="arcgis-imagery">Satélite</button>
-                            <button id="basemap-terrain" class="basemap-btn" data-basemap="arcgis-terrain">Terreno</button>
-                        </div>
-                    </div>
-                    <div class="map-info">
-                        <div id="location-info" class="info-panel">
-                            <h3>📍 Localização</h3>
-                            <p id="current-location">A carregar...</p>
+            <!-- Painéis de Informação (aparecem ao clicar nos botões) -->
+            <div class="info-panels">
+                <!-- Painel de Condições Atuais -->
+                <div id="panel-current" class="info-panel active">
+                    <div class="panel-content">
+                        <div class="current-weather">
+                            <div class="weather-main">
+                                <div class="weather-icon-large" id="current-weather-icon">🌦️</div>
+                                <div class="weather-temp">
+                                    <span id="current-temp">--</span>°C
+                                </div>
+                                <div class="weather-description" id="current-desc">A carregar...</div>
+                            </div>
+                            <div class="weather-details">
+                                <div class="detail-row">
+                                    <div class="detail-item">
+                                        <i class="fas fa-tint"></i>
+                                        <span>Humidade: <strong id="current-humidity">--</strong>%</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-wind"></i>
+                                        <span>Vento: <strong id="current-wind">--</strong> km/h</span>
+                                    </div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-item">
+                                        <i class="fas fa-compass"></i>
+                                        <span>Direção: <strong id="current-direction">--</strong></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-cloud-rain"></i>
+                                        <span>Precip: <strong id="current-precip">--</strong> mm</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Alerts Tab -->
-            <div id="alerts-tab" class="tab-content">
-                <div class="alerts-container">
-                    <div class="alerts-header">
-                        <h2>⚠️ Alertas Meteorológicos - IPMA</h2>
-                        <div class="alerts-filters">
+                <!-- Painel de Alertas -->
+                <div id="panel-alerts" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>⚠️ Alertas IPMA</h2>
+                        <div class="alert-filters">
                             <select id="alert-district" class="form-select">
                                 <option value="">Todos os Distritos</option>
                             </select>
-                            <select id="alert-type" class="form-select">
-                                <option value="">Todos os Tipos</option>
-                                <option value="1">Vento Forte</option>
-                                <option value="2">Precipitação</option>
-                                <option value="3">Temperatura</option>
-                                <option value="4">Neve</option>
-                                <option value="5">Trovoada</option>
-                            </select>
                         </div>
                     </div>
-                    <div id="alerts-list" class="alerts-list">
+                    <div id="alerts-container" class="alerts-scroll">
                         <div class="loading-spinner">
                             <div class="spinner"></div>
-                            <p>A carregar alertas...</p>
+                            <p>A carregar alertas do IPMA...</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Current Conditions Tab -->
-            <div id="current-tab" class="tab-content">
-                <div class="current-conditions">
-                    <div class="conditions-header">
-                        <h2>🌡️ Condições Atuais</h2>
-                        <div class="location-selector">
-                            <input type="text" id="location-search" placeholder="Pesquisar localização...">
-                            <button id="search-btn" class="btn btn-primary">🔍</button>
-                        </div>
-                    </div>
-                    <div class="conditions-grid">
-                        <div class="condition-card featured">
-                            <div class="card-icon">🌡️</div>
-                            <div class="card-content">
-                                <h3>Temperatura</h3>
-                                <div class="card-value">
-                                    <span id="temp-value">--</span>°C
-                                </div>
-                                <p class="card-description">Temperatura atual do ar</p>
-                            </div>
-                        </div>
-                        <div class="condition-card">
-                            <div class="card-icon">💧</div>
-                            <div class="card-content">
-                                <h3>Humidade</h3>
-                                <div class="card-value">
-                                    <span id="humidity-value">--</span>%
-                                </div>
-                                <p class="card-description">Humidade relativa</p>
-                            </div>
-                        </div>
-                        <div class="condition-card">
-                            <div class="card-icon">🌬️</div>
-                            <div class="card-content">
-                                <h3>Vento</h3>
-                                <div class="card-value">
-                                    <span id="wind-speed">--</span> km/h
-                                </div>
-                                <p class="card-description">Velocidade do vento</p>
-                            </div>
-                        </div>
-                        <div class="condition-card">
-                            <div class="card-icon">🌧️</div>
-                            <div class="card-content">
-                                <h3>Precipitação</h3>
-                                <div class="card-value">
-                                    <span id="precipitation-value">--</span> mm
-                                </div>
-                                <p class="card-description">Precipitação acumulada</p>
-                            </div>
-                        </div>
-                        <div class="condition-card">
-                            <div class="card-icon">🌡️</div>
-                            <div class="card-content">
-                                <h3>Sensação</h3>
-                                <div class="card-value">
-                                    <span id="feels-like">--</span>°C
-                                </div>
-                                <p class="card-description">Temperatura aparente</p>
-                            </div>
-                        </div>
-                        <div class="condition-card">
-                            <div class="card-icon">🧭</div>
-                            <div class="card-content">
-                                <h3>Direção Vento</h3>
-                                <div class="card-value">
-                                    <span id="wind-direction">--</span>
-                                </div>
-                                <p class="card-description">Direção do vento</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="conditions-details">
-                        <h3>📊 Detalhes Adicionais</h3>
-                        <div class="details-grid">
-                            <div class="detail-item">
-                                <span class="detail-label">Pressão:</span>
-                                <span class="detail-value" id="pressure-value">-- hPa</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Visibilidade:</span>
-                                <span class="detail-value" id="visibility-value">-- km</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Índice UV:</span>
-                                <span class="detail-value" id="uv-index">--</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Nuvens:</span>
-                                <span class="detail-value" id="cloud-cover">-- %</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Forecast Tab -->
-            <div id="forecast-tab" class="tab-content">
-                <div class="forecast-container">
-                    <div class="forecast-header">
-                        <h2>📅 Previsão do Tempo</h2>
-                        <div class="forecast-selector">
-                            <select id="forecast-source" class="form-select">
-                                <option value="openmeteo">OpenMeteo</option>
-                                <option value="ipma">IPMA</option>
-                            </select>
+                <!-- Painel de Previsão -->
+                <div id="panel-forecast" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>📅 Previsão</h2>
+                        <div class="forecast-filters">
                             <select id="forecast-days" class="form-select">
                                 <option value="1">Hoje</option>
                                 <option value="3" selected>3 Dias</option>
@@ -202,68 +126,65 @@
                             </select>
                         </div>
                     </div>
-                    <div id="forecast-content" class="forecast-content">
+                    <div id="forecast-container" class="forecast-scroll">
                         <div class="loading-spinner">
                             <div class="spinner"></div>
                             <p>A carregar previsão...</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
 
-        <!-- Footer -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <p>Dados fornecidos por: <strong>IPMA</strong>, <strong>OpenMeteo</strong></p>
-                <p>Mapas: <strong>Esri ArcGIS 5.1.26</strong></p>
-                <p>© 2024 Meteo Portugal App</p>
+                <!-- Painel de Localização -->
+                <div id="panel-location" class="info-panel">
+                    <div class="panel-header-small">
+                        <h2>📍 Localização</h2>
+                    </div>
+                    <div class="location-content">
+                        <div class="location-search">
+                            <input type="text" id="location-search" placeholder="Pesquisar cidade ou coordenadas...">
+                            <button id="search-btn" class="btn-search"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="location-info">
+                            <p><strong>Lat:</strong> <span id="location-lat">--</span></p>
+                            <p><strong>Lng:</strong> <span id="location-lng">--</span></p>
+                            <p><strong>Local:</strong> <span id="location-name">--</span></p>
+                        </div>
+                        <button id="btn-gps" class="btn-gps">
+                            <i class="fas fa-location-arrow"></i> Usar Minha Localização
+                        </button>
+                    </div>
+                </div>
             </div>
-        </footer>
+        </div>
+
+        <!-- Painel de Basemaps (canto superior direito) -->
+        <div class="basemap-panel">
+            <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa Topográfico">
+                <i class="fas fa-map"></i>
+            </button>
+            <button id="basemap-satellite" class="basemap-btn" data-basemap="satellite" title="Satélite">
+                <i class="fas fa-satellite"></i>
+            </button>
+            <button id="basemap-terrain" class="basemap-btn" data-basemap="terrain" title="Terreno">
+                <i class="fas fa-mountain"></i>
+            </button>
+        </div>
+
+        <!-- Painel de Atribuição (canto inferior direito) -->
+        <div class="attribution-panel">
+            <div class="data-sources">
+                <span>🌍 <strong>Mapas:</strong> Esri</span>
+                <span>⚠️ <strong>Alertas:</strong> IPMA</span>
+                <span>🌦️ <strong>Dados:</strong> OpenMeteo</span>
+            </div>
+        </div>
     </div>
 
-    <!-- ArcGIS Maps SDK for JavaScript 5.1.26 -->
-<script type="module">
-    import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
-    import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
-    import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
-    import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
-    import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
-    import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
-    import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
-
-    // Disponibilizar globalmente
-    window.arcgis = {
-        Map,
-        MapView,
-        GraphicsLayer,
-        Point,
-        SimpleMarkerSymbol,
-        TextSymbol,
-        Graphic
-    };
-</script>
-
-<!-- Seus scripts -->
-<script type="module" src="js/config.js"></script>
-<script type="module" src="js/map.js"></script>
-<script type="module" src="js/ipma-api.js"></script>
-<script type="module" src="js/openmeteo-api.js"></script>
-<script type="module" src="js/app.js"></script>
-
-<!-- Inicialização -->
-<script type="module">
-    document.addEventListener("DOMContentLoaded", () => {
-        // Aguardar que o arcgis esteja definido
-        const checkArcGIS = setInterval(() => {
-            if (typeof window.arcgis !== 'undefined') {
-                clearInterval(checkArcGIS);
-                if (typeof window.AppModule !== 'undefined') {
-                    window.AppModule.init();
-                }
-            }
-        }, 100);
-    });
-</script>
+    <!-- Scripts -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/map.js"></script>
+    <script type="module" src="js/ipma-api.js"></script>
+    <script type="module" src="js/openmeteo-api.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
