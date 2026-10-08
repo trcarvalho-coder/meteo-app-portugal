@@ -5,6 +5,7 @@ const MapModule = (function() {
     'use strict';
 
     let map, view;
+    let mapInitialized = false;
     let currentBasemap = Config.arcgis.basemaps.streets;
     let currentLocation = Config.app.defaultLocation;
     let weatherLayer, alertsLayer;
@@ -49,11 +50,13 @@ const MapModule = (function() {
             setupEventListeners();
             updateLocationInfo();
 
+            mapInitialized = true;
             Helpers.log('✅ Mapa inicializado com sucesso!');
             return { map, view };
 
         } catch (error) {
             Helpers.showError('Falha ao inicializar mapa', error);
+            mapInitialized = false;
             return null;
         }
     }
@@ -79,6 +82,12 @@ const MapModule = (function() {
 
     // Mudar basemap
     function changeBasemap(basemapId) {
+        // Guard: check if map is initialized
+        if (!mapInitialized || !map) {
+            Helpers.showError('Mapa não inicializado ainda. Tente novamente em alguns segundos.');
+            return;
+        }
+
         currentBasemap = basemapId;
         map.basemap = basemapId;
 
@@ -91,6 +100,12 @@ const MapModule = (function() {
 
     // Obter localização atual
     function getCurrentLocation() {
+        // Guard: check if map and view are initialized
+        if (!mapInitialized || !view) {
+            Helpers.showError('Mapa não inicializado ainda. Tente novamente em alguns segundos.');
+            return;
+        }
+
         if (navigator.geolocation) {
             const statusEl = document.getElementById('location-lat');
             if (statusEl) statusEl.textContent = '...';
@@ -127,7 +142,10 @@ const MapModule = (function() {
 
     // Adicionar marcador de localização
     function addLocationMarker(longitude, latitude, title = '') {
-        if (!weatherLayer || !view) return;
+        // Guard: check if layers and view are initialized
+        if (!mapInitialized || !weatherLayer || !view) {
+            return;
+        }
 
         const { Point, SimpleMarkerSymbol, Graphic } = arcgis;
 
@@ -157,7 +175,15 @@ const MapModule = (function() {
 
     // Adicionar dados meteorológicos ao mapa
     function addWeatherData(longitude, latitude, weatherData) {
-        if (!weatherLayer || !view) return;
+        // Guard: check if layers and view are initialized
+        if (!mapInitialized || !weatherLayer || !view) {
+            return;
+        }
+
+        // Guard: check if weatherData is valid
+        if (!weatherData) {
+            return;
+        }
 
         const { Point, TextSymbol, Graphic } = arcgis;
 
@@ -186,7 +212,7 @@ const MapModule = (function() {
         }));
 
         const tempLabel = new TextSymbol({
-            text: `${Math.round(weatherData.temperature || 0)}°C`,
+            text: `${Math.round(weatherData.temperature != null ? weatherData.temperature : 0)}°C`,
             font: {
                 size: 12,
                 weight: 'bold'
@@ -205,14 +231,22 @@ const MapModule = (function() {
 
     // Adicionar alertas ao mapa
     function addAlertsToMap(alerts) {
-        if (!alertsLayer || !view) return;
+        // Guard: check if layers and view are initialized
+        if (!mapInitialized || !alertsLayer || !view) {
+            return;
+        }
+
+        // Guard: check if alerts is valid array
+        if (!Array.isArray(alerts)) {
+            return;
+        }
 
         const { Point, TextSymbol, Graphic } = arcgis;
 
         alertsLayer.removeAll();
 
         alerts.forEach(alert => {
-            if (alert.coordinates && alert.coordinates.length > 0) {
+            if (alert && alert.coordinates && alert.coordinates.length > 0) {
                 const coord = alert.coordinates[0];
                 const point = new Point({
                     longitude: coord[0],
@@ -220,7 +254,7 @@ const MapModule = (function() {
                 });
 
                 const alertColor = Helpers.getAlertLevelColor(alert.level);
-                const alertIcon = Config.ipma.alertTypes[alert.type]?.icon || '⚠️';
+                const alertIcon = Config.ipma.alertTypes[String(alert.type)]?.icon || '⚠️';
 
                 const alertSymbol = new TextSymbol({
                     text: alertIcon,
@@ -243,26 +277,32 @@ const MapModule = (function() {
 
     // Atualizar informações de localização
     function updateLocationInfo() {
-        if (!view) return;
+        // Guard: check if view is initialized
+        if (!mapInitialized || !view) {
+            return;
+        }
 
         const center = view.center;
         const latEl = document.getElementById('location-lat');
         const lngEl = document.getElementById('location-lng');
         const nameEl = document.getElementById('location-name');
 
-        if (latEl) latEl.textContent = center.latitude.toFixed(4);
-        if (lngEl) lngEl.textContent = center.longitude.toFixed(4);
+        if (latEl && center) latEl.textContent = center.latitude.toFixed(4);
+        if (lngEl && center) lngEl.textContent = center.longitude.toFixed(4);
         if (nameEl) nameEl.textContent = currentLocation.name || 'Portugal';
     }
 
     // Centrar no mapa em coordenadas
     function centerOnCoordinates(longitude, latitude, zoom = null) {
-        if (view) {
-            view.goTo({
-                center: [longitude, latitude],
-                zoom: zoom || Config.arcgis.zoom
-            });
+        // Guard: check if view is initialized
+        if (!mapInitialized || !view) {
+            return;
         }
+
+        view.goTo({
+            center: [longitude, latitude],
+            zoom: zoom || Config.arcgis.zoom
+        });
     }
 
     // Função pública
@@ -275,7 +315,8 @@ const MapModule = (function() {
         addAlertsToMap,
         updateLocationInfo,
         centerOnCoordinates,
-        getView: () => view
+        getView: () => view,
+        isInitialized: () => mapInitialized
     };
 })();
 
