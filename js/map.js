@@ -12,15 +12,16 @@ const MapModule = (function() {
     // Função principal de inicialização
     async function init() {
         try {
+            Helpers.log('Inicializando mapa...');
+
             // Verificar se o ArcGIS está carregado
             if (typeof arcgis === 'undefined') {
-                console.log('⏳ ArcGIS não carregado. Tentando novamente...');
+                Helpers.log('ArcGIS não carregado. Tentando novamente...');
                 setTimeout(init, 200);
                 return null;
             }
 
-            // Importar módulos necessários do ArcGIS
-            const { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic } = arcgis;
+            const { Map, MapView, GraphicsLayer } = arcgis;
 
             // Criar o mapa
             map = new Map({
@@ -33,7 +34,6 @@ const MapModule = (function() {
                 map: map,
                 center: [currentLocation.lng, currentLocation.lat],
                 zoom: Config.arcgis.zoom
-                // ❌ REMOVIDO: ui: { components: [...] } - causa erros
             });
 
             // Aguardar que a view esteja pronta
@@ -49,11 +49,11 @@ const MapModule = (function() {
             setupEventListeners();
             updateLocationInfo();
 
-            console.log('✅ Mapa inicializado com sucesso (ArcGIS 5.1.26)!');
+            Helpers.log('✅ Mapa inicializado com sucesso!');
             return { map, view };
 
         } catch (error) {
-            console.error('❌ Falha ao inicializar mapa:', error);
+            Helpers.showError('Falha ao inicializar mapa', error);
             return null;
         }
     }
@@ -73,22 +73,8 @@ const MapModule = (function() {
             changeBasemap(Config.arcgis.basemaps.terrain);
         });
 
-        // Botões de localização
-        document.getElementById('btn-location')?.addEventListener('click', getCurrentLocation);
-        document.getElementById('btn-refresh')?.addEventListener('click', refreshData);
-
-        // Evento de clique no mapa
-        view?.on('click', (event) => {
-            const lat = event.mapPoint.latitude;
-            const lng = event.mapPoint.longitude;
-            currentLocation = { lat, lng, name: 'Localização Selecionada' };
-            addLocationMarker(lng, lat, 'Localização Selecionada');
-            updateLocationInfo();
-
-            if (typeof window.AppModule !== 'undefined') {
-                window.AppModule.updateWeatherData(lat, lng);
-            }
-        });
+        // Botão de localização
+        document.getElementById('btn-gps')?.addEventListener('click', getCurrentLocation);
     }
 
     // Mudar basemap
@@ -106,8 +92,8 @@ const MapModule = (function() {
     // Obter localização atual
     function getCurrentLocation() {
         if (navigator.geolocation) {
-            const statusEl = document.getElementById('current-location');
-            if (statusEl) statusEl.textContent = 'A obter localização...';
+            const statusEl = document.getElementById('location-lat');
+            if (statusEl) statusEl.textContent = '...';
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -128,8 +114,9 @@ const MapModule = (function() {
                     }
                 },
                 (error) => {
-                    console.error('❌ Erro ao obter localização:', error);
-                    if (statusEl) statusEl.textContent = 'Erro ao obter localização';
+                    Helpers.showError('Erro ao obter localização', error);
+                    const statusEl = document.getElementById('location-lat');
+                    if (statusEl) statusEl.textContent = '--';
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -142,9 +129,7 @@ const MapModule = (function() {
     function addLocationMarker(longitude, latitude, title = '') {
         if (!weatherLayer || !view) return;
 
-        const Point = arcgis.Point;
-        const SimpleMarkerSymbol = arcgis.SimpleMarkerSymbol;
-        const Graphic = arcgis.Graphic;
+        const { Point, SimpleMarkerSymbol, Graphic } = arcgis;
 
         const point = new Point({
             longitude: longitude,
@@ -174,9 +159,7 @@ const MapModule = (function() {
     function addWeatherData(longitude, latitude, weatherData) {
         if (!weatherLayer || !view) return;
 
-        const Point = arcgis.Point;
-        const TextSymbol = arcgis.TextSymbol;
-        const Graphic = arcgis.Graphic;
+        const { Point, TextSymbol, Graphic } = arcgis;
 
         weatherLayer.removeAll();
 
@@ -224,9 +207,7 @@ const MapModule = (function() {
     function addAlertsToMap(alerts) {
         if (!alertsLayer || !view) return;
 
-        const Point = arcgis.Point;
-        const TextSymbol = arcgis.TextSymbol;
-        const Graphic = arcgis.Graphic;
+        const { Point, TextSymbol, Graphic } = arcgis;
 
         alertsLayer.removeAll();
 
@@ -265,23 +246,13 @@ const MapModule = (function() {
         if (!view) return;
 
         const center = view.center;
-        const locationInfo = document.getElementById('current-location');
+        const latEl = document.getElementById('location-lat');
+        const lngEl = document.getElementById('location-lng');
+        const nameEl = document.getElementById('location-name');
 
-        if (locationInfo) {
-            const lat = center.latitude.toFixed(4);
-            const lng = center.longitude.toFixed(4);
-            locationInfo.innerHTML = `<strong>Lat: ${lat}, Lng: ${lng}</strong>`;
-        }
-    }
-
-    // Atualizar dados
-    function refreshData() {
-        if (currentLocation && typeof window.AppModule !== 'undefined') {
-            window.AppModule.updateWeatherData(currentLocation.lat, currentLocation.lng);
-        }
-        if (typeof window.AppModule !== 'undefined') {
-            window.AppModule.loadAlerts();
-        }
+        if (latEl) latEl.textContent = center.latitude.toFixed(4);
+        if (lngEl) lngEl.textContent = center.longitude.toFixed(4);
+        if (nameEl) nameEl.textContent = currentLocation.name || 'Portugal';
     }
 
     // Centrar no mapa em coordenadas
@@ -303,7 +274,8 @@ const MapModule = (function() {
         addWeatherData,
         addAlertsToMap,
         updateLocationInfo,
-        centerOnCoordinates
+        centerOnCoordinates,
+        getView: () => view
     };
 })();
 
