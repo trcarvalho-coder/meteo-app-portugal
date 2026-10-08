@@ -11,6 +11,7 @@ const MapModule = (function() {
     let weatherLayer, alertsLayer;
     let mapSelectionMode = false;
     let selectionClickHandler = null;
+    let clickEventHandle = null;
 
     async function init() {
         try {
@@ -85,11 +86,12 @@ const MapModule = (function() {
             view.cursor = 'crosshair';
             Helpers.log('📍 Clique no mapa para selecionar as coordenadas');
 
-            if (selectionClickHandler) {
-                view.off('click', selectionClickHandler);
+            if (clickEventHandle) {
+                clickEventHandle.remove();
+                clickEventHandle = null;
             }
 
-            selectionClickHandler = (event) => {
+            clickEventHandle = view.on('click', (event) => {
                 const lat = Number(event.mapPoint.latitude);
                 const lng = Number(event.mapPoint.longitude);
 
@@ -110,9 +112,7 @@ const MapModule = (function() {
                 }
 
                 Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-            };
-
-            view.on('click', selectionClickHandler);
+            });
         } else {
             exitMapSelectionMode();
         }
@@ -124,9 +124,9 @@ const MapModule = (function() {
         btn?.classList.remove('active');
         if (view) view.cursor = 'auto';
 
-        if (selectionClickHandler) {
-            view?.off('click', selectionClickHandler);
-            selectionClickHandler = null;
+        if (clickEventHandle) {
+            clickEventHandle.remove();
+            clickEventHandle = null;
         }
     }
 
