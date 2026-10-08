@@ -113,7 +113,7 @@ const AppModule = (function() {
             if (alerts) {
                 currentAlertsData = alerts;
                 displayAlerts(alerts);
-                MapModule.addAlertsToMap(alerts);
+                window.MapModule.addAlertsToMap(alerts);
 
                 const activeAlerts = alerts.filter(a => a.level >= 2).length;
                 const badgeEl = document.getElementById('alerts-badge');
@@ -136,8 +136,8 @@ const AppModule = (function() {
             if (currentConditions) {
                 currentWeatherData = currentConditions;
                 displayCurrentConditions(currentConditions);
-                MapModule.addWeatherData(longitude, latitude, currentConditions);
-                MapModule.centerOnCoordinates(longitude, latitude, 12);
+                window.MapModule.addWeatherData(longitude, latitude, currentConditions);
+                window.MapModule.centerOnCoordinates(longitude, latitude, 12);
             }
 
             await loadForecastData();
@@ -203,7 +203,7 @@ const AppModule = (function() {
         } else if (panelId === 'forecast') {
             loadForecastData();
         } else if (panelId === 'location') {
-            MapModule.updateLocationInfo();
+            window.MapModule.updateLocationInfo();
         } else if (panelId === 'current' && currentLocation) {
             updateWeatherData(currentLocation.lat, currentLocation.lng);
         } else if (panelId === 'openmeteo' && currentLocation) {
@@ -246,16 +246,16 @@ const AppModule = (function() {
                 await updateWeatherData(location.lat, location.lng);
                 const locationSearch = document.getElementById('location-search');
                 if (locationSearch) locationSearch.value = location.name;
-                MapModule.centerOnCoordinates(location.lng, location.lat, 12);
-                MapModule.exitMapSelectionMode();
+                window.MapModule.centerOnCoordinates(location.lng, location.lat, 12);
+                window.MapModule.exitMapSelectionMode();
             } else {
                 const coords = trimmedQuery.split(',').map(s => parseFloat(s.trim()));
                 if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                     await updateWeatherData(coords[0], coords[1]);
                     const locationSearch = document.getElementById('location-search');
                     if (locationSearch) locationSearch.value = `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
-                    MapModule.centerOnCoordinates(coords[1], coords[0], 12);
-                    MapModule.exitMapSelectionMode();
+                    window.MapModule.centerOnCoordinates(coords[1], coords[0], 12);
+                    window.MapModule.exitMapSelectionMode();
                 } else {
                     alert('⚠️ Localização não encontrada. Tente um nome de cidade ou coordenadas (lat, lng).');
                 }
