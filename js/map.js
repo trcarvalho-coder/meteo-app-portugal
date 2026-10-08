@@ -86,36 +86,36 @@ const MapModule = (function() {
             view.cursor = 'crosshair';
             Helpers.log('📍 Clique no mapa para selecionar as coordenadas');
 
-            if (clickEventHandle) {
-                clickEventHandle.remove();
-                clickEventHandle = null;
-            }
+            exitMapSelectionMode();
 
-            clickEventHandle = view.on('click', (event) => {
-                const lat = Number(event.mapPoint.latitude);
-                const lng = Number(event.mapPoint.longitude);
-
-                currentLocation = { lat, lng, name: 'Localização Selecionada' };
-                weatherLayer.removeAll();
-                addLocationMarker(lng, lat, 'Localização Selecionada');
-                updateLocationInfo();
-
-                const locationSearch = document.getElementById('location-search');
-                if (locationSearch) {
-                    locationSearch.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                }
-
-                if (clearBtn) clearBtn.style.display = 'inline-block';
-
-                if (typeof window.AppModule !== 'undefined') {
-                    window.AppModule.updateWeatherData(lat, lng);
-                }
-
-                Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-            });
+            clickEventHandle = view.on('click', handleMapClick);
         } else {
             exitMapSelectionMode();
         }
+    }
+
+    function handleMapClick(event) {
+        const lat = Number(event.mapPoint.latitude);
+        const lng = Number(event.mapPoint.longitude);
+
+        currentLocation = { lat, lng, name: 'Localização Selecionada' };
+        weatherLayer.removeAll();
+        addLocationMarker(lng, lat, 'Localização Selecionada');
+        updateLocationInfo();
+
+        const locationSearch = document.getElementById('location-search');
+        if (locationSearch) {
+            locationSearch.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+
+        const clearBtn = document.getElementById('btn-clear-selection');
+        if (clearBtn) clearBtn.style.display = 'inline-block';
+
+        if (typeof window.AppModule !== 'undefined') {
+            window.AppModule.updateWeatherData(lat, lng);
+        }
+
+        Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
 
     function exitMapSelectionMode() {

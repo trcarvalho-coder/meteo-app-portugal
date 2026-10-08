@@ -271,6 +271,7 @@ const AppModule = (function() {
         const humidityEl = document.getElementById('current-humidity');
         const windEl = document.getElementById('current-wind');
         const directionEl = document.getElementById('current-direction');
+        const gustEl = document.getElementById('current-gust');
         const precipEl = document.getElementById('current-precip');
         const iconEl = document.getElementById('current-weather-icon');
 
@@ -279,6 +280,7 @@ const AppModule = (function() {
         if (humidityEl) humidityEl.textContent = Math.round(conditions.humidity || 0);
         if (windEl) windEl.textContent = Math.round((conditions.windSpeed || 0) * 3.6);
         if (directionEl) directionEl.textContent = Helpers.getWindDirection(conditions.windDirection);
+        if (gustEl) gustEl.textContent = conditions.windGust != null ? Math.round(conditions.windGust * 3.6) : '--';
         if (precipEl) precipEl.textContent = (conditions.precipitation || 0).toFixed(1);
         if (iconEl) iconEl.textContent = conditions.weatherIcon || '🌦️';
     }
