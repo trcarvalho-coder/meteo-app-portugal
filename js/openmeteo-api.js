@@ -82,7 +82,7 @@ const OpenMeteoModule = (function() {
         const params = {
             latitude: latitude,
             longitude: longitude,
-            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover',
+            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
             forecast_hours: 24,
             timezone: 'Europe/Lisbon'
         };
@@ -100,6 +100,7 @@ const OpenMeteoModule = (function() {
                 weatherCode: hourlyData.weather_code[i],
                 windSpeed: hourlyData.wind_speed_10m[i],
                 windDirection: hourlyData.wind_direction_10m[i],
+                windGust: hourlyData.wind_gusts_10m ? hourlyData.wind_gusts_10m[i] : null,
                 precipitation: hourlyData.precipitation[i],
                 cloudCover: hourlyData.cloud_cover[i],
                 weatherDescription: Helpers.getWeatherDescription(hourlyData.weather_code[i]),
@@ -127,7 +128,7 @@ const OpenMeteoModule = (function() {
             latitude: latitude,
             longitude: longitude,
             forecast_days: days,
-            daily: Config.openmeteo.defaultParams.daily.join(','),
+            daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
             timezone: 'Europe/Lisbon'
         };
 
@@ -145,6 +146,9 @@ const OpenMeteoModule = (function() {
                 precipitation: dailyData.precipitation_sum[i],
                 weatherCode: dailyData.weather_code[i],
                 windSpeed: dailyData.wind_speed_10m_max[i],
+                windGust: dailyData.wind_gusts_10m_max ? dailyData.wind_gusts_10m_max[i] : null,
+                windDirection: dailyData.wind_direction_10m_dominant ? dailyData.wind_direction_10m_dominant[i] : null,
+                cloudCover: dailyData.cloud_cover_mean ? dailyData.cloud_cover_mean[i] : null,
                 weatherDescription: Helpers.getWeatherDescription(dailyData.weather_code[i]),
                 weatherIcon: Helpers.getWeatherIcon(dailyData.weather_code[i])
             });
@@ -166,41 +170,75 @@ const OpenMeteoModule = (function() {
             return cached.data;
         }
 
-        const params = {
-            latitude: latitude,
-            longitude: longitude
-        };
+        try {
+            const params = {
+                latitude: latitude,
+                longitude: longitude
+            };
 
-        const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
-        if (!data || !data.alerts) {
+            const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
+            if (!data || !data.alerts) {
+                alertsCache[cacheKey] = {
+                    data: [],
+                    timestamp: now
+                };
+                return [];
+            }
+
+            const alerts = data.alerts.map(alert => ({
+                event: alert.event || 'Alerta',
+                headline: alert.headline || '',
+                description: alert.description || '',
+                onset: new Date(alert.onset),
+                expires: new Date(alert.expires),
+                severity: alert.severity || 'unknown',
+                senderName: alert.senderName || '',
+                urgency: alert.urgency || '',
+                certainty: alert.certainty || '',
+                instruction: alert.instruction || '',
+                parameters: alert.parameters || {}
+            }));
+
             alertsCache[cacheKey] = {
-                data: [],
+                data: alerts,
                 timestamp: now
             };
-            return [];
+            return alerts;
+        } catch (error) {
+            console.error('Error loading alerts:', error);
+            return cached ? cached.data : [];
         }
+    }
 
-        const alerts = data.alerts.map(alert => ({
-            event: alert.event || 'Alerta',
-            headline: alert.headline || '',
-            description: alert.description || '',
-            onset: new Date(alert.onset),
-            expires: new Date(alert.expires),
-            severity: alert.severity || 'unknown'
-        }));
+    async function loadAllForecastData(latitude, longitude, forceRefresh = false) {
+        try {
+            const current = await loadCurrentConditions(latitude, longitude, forceRefresh);
+            const hourly = await loadHourlyForecast(latitude, longitude, forceRefresh);
+            const daily3 = await loadDailyForecast(latitude, longitude, 3, forceRefresh);
+            const daily5 = await loadDailyForecast(latitude, longitude, 5, forceRefresh);
+            const daily7 = await loadDailyForecast(latitude, longitude, 7, forceRefresh);
+            const alerts = await loadAlerts(latitude, longitude, forceRefresh);
 
-        alertsCache[cacheKey] = {
-            data: alerts,
-            timestamp: now
-        };
-        return alerts;
+            return {
+                current,
+                hourly,
+                daily3,
+                daily5,
+                daily7,
+                alerts
+            };
+        } catch (error) {
+            console.error('Error loading all forecast data:', error);
+            return null;
+        }
     }
 
     return {
         loadCurrentConditions,
         loadDailyForecast,
         loadHourlyForecast,
-        loadAlerts
+        loadAlerts,
+        loadAllForecastData
     };
 })();
 

@@ -105,8 +105,6 @@ const MapModule = (function() {
 
                 if (clearBtn) clearBtn.style.display = 'inline-block';
 
-                exitMapSelectionMode();
-
                 if (typeof window.AppModule !== 'undefined') {
                     window.AppModule.updateWeatherData(lat, lng);
                 }

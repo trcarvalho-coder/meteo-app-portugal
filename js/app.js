@@ -164,6 +164,24 @@ const AppModule = (function() {
         }
     }
 
+    async function loadOpenMeteoData() {
+        try {
+            if (!currentLocation) return;
+
+            const data = await OpenMeteoModule.loadAllForecastData(
+                currentLocation.lat,
+                currentLocation.lng,
+                true
+            );
+
+            if (data) {
+                displayOpenMeteoData(data);
+            }
+        } catch (error) {
+            Helpers.showError('Falha ao carregar dados OpenMeteo', error);
+        }
+    }
+
     function switchPanel(panelId) {
         document.querySelectorAll('.info-panel').forEach(panel => {
             panel.classList.remove('active');
@@ -188,6 +206,8 @@ const AppModule = (function() {
             MapModule.updateLocationInfo();
         } else if (panelId === 'current' && currentLocation) {
             updateWeatherData(currentLocation.lat, currentLocation.lng);
+        } else if (panelId === 'openmeteo' && currentLocation) {
+            loadOpenMeteoData();
         }
     }
 
@@ -226,12 +246,16 @@ const AppModule = (function() {
                 await updateWeatherData(location.lat, location.lng);
                 const locationSearch = document.getElementById('location-search');
                 if (locationSearch) locationSearch.value = location.name;
+                MapModule.centerOnCoordinates(location.lng, location.lat, 12);
+                MapModule.exitMapSelectionMode();
             } else {
                 const coords = trimmedQuery.split(',').map(s => parseFloat(s.trim()));
                 if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
                     await updateWeatherData(coords[0], coords[1]);
                     const locationSearch = document.getElementById('location-search');
-                    if (locationSearch) locationSearch.value = '';
+                    if (locationSearch) locationSearch.value = `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
+                    MapModule.centerOnCoordinates(coords[1], coords[0], 12);
+                    MapModule.exitMapSelectionMode();
                 } else {
                     alert('⚠️ Localização não encontrada. Tente um nome de cidade ou coordenadas (lat, lng).');
                 }
@@ -369,6 +393,181 @@ const AppModule = (function() {
             dayElement.appendChild(dayDetails);
             forecastContainer.appendChild(dayElement);
         });
+    }
+
+    function displayOpenMeteoData(data) {
+        if (!data) return;
+
+        displayOpenMeteoCurrent(data.current);
+        displayOpenMeteoHourly(data.hourly);
+        displayOpenMeteoAlerts(data.alerts);
+        displayOpenMeteoForecast(data.daily3, data.daily5, data.daily7);
+    }
+
+    function displayOpenMeteoCurrent(current) {
+        const tempEl = document.getElementById('openmeteo-temp');
+        const feelsEl = document.getElementById('openmeteo-feels');
+        const cloudEl = document.getElementById('openmeteo-cloud');
+        const precipEl = document.getElementById('openmeteo-precip');
+        const windEl = document.getElementById('openmeteo-wind');
+        const gustEl = document.getElementById('openmeteo-gust');
+        const windDirEl = document.getElementById('openmeteo-wind-dir');
+        const pressureEl = document.getElementById('openmeteo-pressure');
+
+        if (current) {
+            if (tempEl) tempEl.textContent = current.temperature != null ? `${Math.round(current.temperature)}°C` : '--°C';
+            if (feelsEl) feelsEl.textContent = current.apparentTemperature != null ? `${Math.round(current.apparentTemperature)}°C` : '--°C';
+            if (cloudEl) cloudEl.textContent = current.cloudCover != null ? `${Math.round(current.cloudCover)}%` : '--%';
+            if (precipEl) precipEl.textContent = current.precipitation != null ? `${current.precipitation.toFixed(1)} mm` : '-- mm';
+            if (windEl) windEl.textContent = current.windSpeed != null ? `${Math.round(current.windSpeed * 3.6)} km/h` : '-- km/h';
+            if (gustEl) gustEl.textContent = current.windGust != null ? `${Math.round(current.windGust * 3.6)} km/h` : '-- km/h';
+            if (windDirEl) windDirEl.textContent = current.windDirection != null ? Helpers.getWindDirection(current.windDirection) : '--';
+            if (pressureEl) pressureEl.textContent = current.pressure != null ? `${Math.round(current.pressure)} hPa` : '-- hPa';
+        }
+    }
+
+    function displayOpenMeteoHourly(hourly) {
+        const hourlyContainer = document.getElementById('openmeteo-hourly');
+        if (!hourlyContainer) return;
+
+        hourlyContainer.innerHTML = '';
+        if (!hourly || hourly.length === 0) {
+            hourlyContainer.innerHTML = '<p class="text-center">Sem dados horários disponíveis</p>';
+            return;
+        }
+
+        const hourlyScroll = document.createElement('div');
+        hourlyScroll.className = 'hourly-scroll-content';
+
+        hourly.forEach(hour => {
+            const hourElement = document.createElement('div');
+            hourElement.className = 'hourly-item';
+            const timeStr = hour.time.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+            const icon = hour.weatherIcon || '🌦️';
+
+            hourElement.innerHTML = `
+                <div class="hourly-time">${timeStr}</div>
+                <div class="hourly-icon">${icon}</div>
+                <div class="hourly-temp">${hour.temperature != null ? Math.round(hour.temperature) + '°C' : '--'}</div>
+                <div class="hourly-details">
+                    <span>🌬️ ${hour.windSpeed != null ? Math.round(hour.windSpeed * 3.6) + ' km/h' : '--'}</span>
+                    <span>💧 ${hour.precipitation != null ? hour.precipitation.toFixed(1) + ' mm' : '0'}</span>
+                    <span>☁️ ${hour.cloudCover != null ? Math.round(hour.cloudCover) + '%' : '--'}</span>
+                </div>
+            `;
+            hourlyScroll.appendChild(hourElement);
+        });
+
+        hourlyContainer.appendChild(hourlyScroll);
+    }
+
+    function displayOpenMeteoAlerts(alerts) {
+        const alertsContainer = document.getElementById('openmeteo-alerts');
+        if (!alertsContainer) return;
+
+        alertsContainer.innerHTML = '';
+        if (!alerts || alerts.length === 0) {
+            alertsContainer.innerHTML = '<p class="text-center">Sem alertas meteorológicos OpenMeteo</p>';
+            return;
+        }
+
+        alerts.forEach(alert => {
+            const alertCard = document.createElement('div');
+            alertCard.className = 'alert-card';
+
+            const onsetStr = alert.onset ? alert.onset.toLocaleString('pt-PT') : 'Desconhecido';
+            const expiresStr = alert.expires ? alert.expires.toLocaleString('pt-PT') : 'Desconhecido';
+            const duration = alert.onset && alert.expires ? 
+                Math.round((alert.expires - alert.onset) / (1000 * 60 * 60)) + ' horas' : 'Desconhecido';
+
+            const severityColor = {
+                'extreme': '#e74c3c',
+                'severe': '#e74c3c',
+                'moderate': '#f39c12',
+                'minor': '#2ecc71',
+                'unknown': '#7f8c8d'
+            };
+            const color = severityColor[alert.severity?.toLowerCase()] || '#7f8c8d';
+
+            alertCard.style.borderLeftColor = color;
+
+            alertCard.innerHTML = `
+                <div class="alert-header">
+                    <div class="alert-title">⚠️ ${alert.event || 'Alerta'}</div>
+                    <div class="alert-badge" style="background-color: ${color};">${alert.severity || 'Desconhecido'}</div>
+                </div>
+                <div class="alert-details">${alert.headline || alert.description || 'Alerta meteorológico'}</div>
+                <div class="alert-meta">
+                    <div><strong>Início:</strong> ${onsetStr}</div>
+                    <div><strong>Fim:</strong> ${expiresStr}</div>
+                    <div><strong>Duração:</strong> ${duration}</div>
+                </div>
+                ${alert.instruction ? `<div class="alert-instruction"><strong>Medidas:</strong> ${alert.instruction}</div>` : ''}
+            `;
+            alertsContainer.appendChild(alertCard);
+        });
+    }
+
+    function displayOpenMeteoForecast(daily3, daily5, daily7) {
+        const forecastContainer = document.getElementById('openmeteo-daily');
+        if (!forecastContainer) return;
+
+        forecastContainer.innerHTML = '';
+
+        const createForecastSection = (data, title) => {
+            if (!data || data.length === 0) return null;
+
+            const section = document.createElement('div');
+            section.className = 'forecast-section';
+
+            const sectionHeader = document.createElement('div');
+            sectionHeader.className = 'forecast-section-header';
+            sectionHeader.textContent = title;
+
+            const sectionContent = document.createElement('div');
+            sectionContent.className = 'forecast-section-content';
+
+            data.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'forecast-day-small';
+                const formattedDate = Helpers.formatDate(day.date);
+                const icon = day.weatherIcon || '🌦️';
+
+                dayElement.innerHTML = `
+                    <div class="forecast-day-header-small">
+                        <span class="forecast-date-small">${formattedDate}</span>
+                        <span class="forecast-icon-small">${icon}</span>
+                    </div>
+                    <div class="forecast-temps">
+                        <span class="forecast-max">${day.maxTemp != null ? Math.round(day.maxTemp) + '°C' : '--'}</span>
+                        <span class="forecast-min">${day.minTemp != null ? Math.round(day.minTemp) + '°C' : '--'}</span>
+                    </div>
+                    <div class="forecast-day-details">
+                        <span>💧 ${day.precipitation != null ? day.precipitation.toFixed(1) + ' mm' : '0'}</span>
+                        <span>🌬️ ${day.windSpeed != null ? Math.round(day.windSpeed * 3.6) + ' km/h' : '--'}</span>
+                    </div>
+                `;
+                sectionContent.appendChild(dayElement);
+            });
+
+            section.appendChild(sectionHeader);
+            section.appendChild(sectionContent);
+            return section;
+        };
+
+        if (daily3 && daily3.length > 0) {
+            forecastContainer.appendChild(createForecastSection(daily3, 'Previsão 3 Dias'));
+        }
+        if (daily5 && daily5.length > 0) {
+            forecastContainer.appendChild(createForecastSection(daily5, 'Previsão 5 Dias'));
+        }
+        if (daily7 && daily7.length > 0) {
+            forecastContainer.appendChild(createForecastSection(daily7, 'Previsão 7 Dias'));
+        }
+
+        if (!daily3 && !daily5 && !daily7) {
+            forecastContainer.innerHTML = '<p class="text-center">Sem dados de previsão disponíveis</p>';
+        }
     }
 
     function startPeriodicUpdates() {
