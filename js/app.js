@@ -287,7 +287,7 @@ const AppModule = (function() {
             const alertCard = document.createElement('div');
             alertCard.className = `alert-card alert-level-${alert.level}`;
 
-            const startDate = new Date(alert.startDate).toLocaleString('pt-PT);
+            const startDate = new Date(alert.startDate).toLocaleString('pt-PT');
             const endDate = new Date(alert.endDate).toLocaleString('pt-PT');
             const alertTypeInfo = Config.ipma.alertTypes[alert.type] || { name: 'Desconhecido', icon: '⚠️' };
             const levelNames = ['', 'Minor', 'Moderado', 'Severo', 'Extremo'];
