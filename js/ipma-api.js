@@ -21,7 +21,8 @@ const IPMAModule = (function() {
             }
 
             const data = await response.json();
-            Helpers.log('✅ IPMA API está funcional!', data.data?.length || 0 + ' alertas encontrados');
+            const alertCount = (data && data.data) ? data.data.length : 0;
+            Helpers.log(`✅ IPMA API está funcional! ${alertCount} alertas encontrados`);
             return true;
         } catch (error) {
             Helpers.showError('Falha ao testar IPMA API', error);
@@ -41,7 +42,8 @@ const IPMAModule = (function() {
             }
 
             const data = await response.json();
-            Helpers.log('Dados recebidos:', data.data?.length || data.length || 0 + ' itens');
+            const itemCount = (data && data.data) ? data.data.length : (data ? data.length : 0);
+            Helpers.log(`Dados recebidos: ${itemCount} itens`);
             return data;
         } catch (error) {
             Helpers.showError(`Falha ao buscar dados do IPMA: ${endpoint}`, error);
@@ -80,16 +82,19 @@ const IPMAModule = (function() {
     function processAlertsData(data) {
         const alerts = [];
 
-        if (data && data.data) {
+        if (data && data.data && Array.isArray(data.data)) {
             data.data.forEach(warning => {
+                // Guard against missing fields
+                if (!warning) return;
+
                 // Processar cada alerta
                 const alert = {
                     id: warning.id || `alert-${Math.random().toString(36).substr(2, 9)}`,
                     type: warning.type || '1',
                     level: parseInt(warning.level) || 1,
                     description: warning.description || warning.descricao || 'Alerta meteorológico',
-                    startDate: new Date(warning.startTime || warning.dataInicio),
-                    endDate: new Date(warning.endTime || warning.dataFim),
+                    startDate: warning.startTime || warning.dataInicio ? new Date(warning.startTime || warning.dataInicio) : new Date(),
+                    endDate: warning.endTime || warning.dataFim ? new Date(warning.endTime || warning.dataFim) : new Date(),
                     district: getDistrictName(warning.districtId || warning.distrito),
                     districtId: warning.districtId || warning.distrito,
                     coordinates: getDistrictCoordinates(warning.districtId || warning.distrito),
@@ -115,8 +120,8 @@ const IPMAModule = (function() {
     function getDistrictName(districtId) {
         if (!districtId) return 'Desconhecido';
 
-        const district = Config.ipma.districts.find(d => d.id === districtId.toString());
-        return district ? district.name : districtId;
+        const district = Config.ipma.districts.find(d => d.id === String(districtId));
+        return district ? district.name : String(districtId);
     }
 
     // Obter coordenadas do distrito
@@ -142,7 +147,7 @@ const IPMAModule = (function() {
             '30': [[-16.0, 32.7]]    // Madeira
         };
 
-        return districtCoords[districtId] || [[-8.0, 39.5]]; // Default: centro de Portugal
+        return districtCoords[String(districtId)] || [[-8.0, 39.5]]; // Default: centro de Portugal
     }
 
     // Carregar estações/cidades
@@ -152,7 +157,7 @@ const IPMAModule = (function() {
         Helpers.log('Carregando cidades do IPMA...');
         const data = await fetchData(Config.ipma.endpoints.stations);
 
-        if (data && data.data) {
+        if (data && data.data && Array.isArray(data.data)) {
             stationsCache = data.data;
             Helpers.log(`✅ ${stationsCache.length} cidades carregadas`);
         }
@@ -166,7 +171,7 @@ const IPMAModule = (function() {
             Helpers.log(`Carregando previsão para cidade ${cityId}...`);
             const data = await fetchData(`${Config.ipma.endpoints.forecast}/${cityId}.json`);
 
-            if (!data || !data.data) {
+            if (!data || !data.data || !Array.isArray(data.data)) {
                 Helpers.log('Nenhuma previsão encontrada');
                 return [];
             }
@@ -176,8 +181,10 @@ const IPMAModule = (function() {
 
             for (let i = 0; i < Math.min(days, forecastData.length); i++) {
                 const dayData = forecastData[i];
+                if (!dayData) continue;
+
                 forecast.push({
-                    date: new Date(dayData.data),
+                    date: dayData.data ? new Date(dayData.data) : new Date(),
                     minTemp: dayData.tMin,
                     maxTemp: dayData.tMax,
                     precipitation: dayData.precipitaProb,
@@ -220,7 +227,7 @@ const IPMAModule = (function() {
             '18': 'Vento forte'
         };
 
-        return descriptions[weatherCode] || 'Desconhecido';
+        return descriptions[String(weatherCode)] || 'Desconhecido';
     }
 
     // Obter ícone do tempo do IPMA
@@ -232,7 +239,7 @@ const IPMAModule = (function() {
             '16': '🧊', '17': '⛈️', '18': '🌬️'
         };
 
-        return icons[weatherCode] || '🌦️';
+        return icons[String(weatherCode)] || '🌦️';
     }
 
     // Função pública
