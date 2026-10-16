@@ -41,39 +41,35 @@ describe('catálogo de variáveis', () => {
 describe('linha temporal tri-horária', () => {
     const nativeStepList = () => {
         const steps = [];
-        for (let h = 0; h <= 144; h += 3) steps.push(h);
-        for (let h = 150; h <= 168; h += 6) steps.push(h);
+        for (let h = 0; h <= 72; h += 3) steps.push(h);
         return steps;
     };
 
-    it('horizonte de 168 h com passos nativos 3 h até 144 h e 6 h depois', () => {
+    it('horizonte de 72 h com passos nativos de 3 h (25 instantes)', () => {
         const steps = nativeStepList();
         expect(steps[0]).toBe(0);
-        expect(steps).toContain(144);
-        expect(steps).toContain(168);
-        expect(steps).not.toContain(147);
-        expect(steps.filter(s => s > 144)).toEqual([150, 156, 162, 168]);
+        expect(steps).toContain(72);
+        expect(steps.length).toBe(25);
+        expect(steps).not.toContain(75);
+        expect(steps).not.toContain(144);
     });
 
-    it('mudança de frequência 3 h → 6 h é reconhecida', () => {
+    it('todos os passos são múltiplos de 3 h', () => {
         const steps = nativeStepList();
-        const diffs = steps.slice(1).map((s, i) => s - steps[i]);
-        expect(Math.max(...diffs)).toBe(6);
-        expect(Math.min(...diffs)).toBe(3);
+        expect(steps.every(s => s % 3 === 0)).toBe(true);
     });
 
-    it('57 instantes (0..168 h de 3 em 3 h, ambos incluídos) ≠ 56 intervalos', () => {
+    it('25 instantes (0..72 h de 3 em 3 h, ambos incluídos) = 24 intervalos', () => {
         let count = 0;
-        for (let h = 0; h <= 168; h += 3) count++;
-        expect(count).toBe(57);
-        expect(count - 1).toBe(56);
+        for (let h = 0; h <= 72; h += 3) count++;
+        expect(count).toBe(25);
+        expect(count - 1).toBe(24);
     });
 
-    it('acumulação de 6 h não é rotulada como nativa de 3 h', () => {
-        const steps = nativeStepList();
-        expect(steps.includes(145)).toBe(false);
-        expect(steps.includes(147)).toBe(false);
-        expect(steps.filter(s => s <= 144).every(s => s % 3 === 0)).toBe(true);
+    it('HORIZON_STEPS da Timeline é 25', async () => {
+        const Timeline = (await import('../js/meteo/timeline.js')).default;
+        expect(Timeline.HORIZON_STEPS).toBe(25);
+        expect(Timeline.indexToStep(24)).toBe(72);
     });
 
     it('validade = execução + prazo', () => {

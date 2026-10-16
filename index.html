@@ -17,8 +17,9 @@
         import Popup from "https://js.arcgis.com/5.1.26/@arcgis/core/widgets/Popup.js";
         window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic, Popup };
     </script>
-    <!-- URL do backend ECMWF em produção (ver docs/deploy-backend.md) -->
-    <script>window.ECMWF_BACKEND_URL = window.ECMWF_BACKEND_URL || 'http://127.0.0.1:8787';</script>
+    <!-- URL do backend ECMWF: NÃO definir em produção (o site publicado usa
+         apenas o JSON estático). window.ECMWF_BACKEND_URL é detetada apenas em
+         desenvolvimento (localhost) pelo adaptador. -->
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,7 +37,7 @@
             <button class="rail-btn" data-panel="omforecast" aria-expanded="false" aria-controls="floating-panel" title="Previsão Open-Meteo">
                 <i class="fas fa-cloud-sun-rain" aria-hidden="true"></i><span>Previsão OM</span>
             </button>
-            <button class="rail-btn" data-panel="ecmwf" aria-expanded="false" aria-controls="floating-panel" title="Previsão ECMWF 7 dias">
+            <button class="rail-btn" data-panel="ecmwf" aria-expanded="false" aria-controls="floating-panel" title="Previsão ECMWF 72 h">
                 <i class="fas fa-satellite-dish" aria-hidden="true"></i><span>ECMWF</span>
             </button>
             <button class="rail-btn" data-panel="ipma" aria-expanded="false" aria-controls="floating-panel" title="Avisos IPMA">
@@ -91,7 +92,7 @@
                 </div>
             </div></template>
 
-            <!-- Widget: ECMWF — Previsão 7 dias -->
+            <!-- Widget: ECMWF — Previsão 72 h -->
             <template id="tpl-ecmwf"><div id="ecmwf-panel" class="widget-body">
                 <div id="ecmwf-panel-content" class="widget-content">
                     <div id="ecmwf-loading" class="loading-spinner" hidden>
@@ -313,7 +314,7 @@
         <div class="attribution-panel">
             <div class="data-sources">
                 <span>Mapas: <strong>Esri</strong></span>
-                <span>Previsão 7 dias: <strong>ECMWF Open Data (AWS)</strong> — CC-BY-4.0</span>
+                <span>Previsão 72 h: <strong>ECMWF Open Data (AWS)</strong> — CC-BY-4.0</span>
                 <span>Alertas: <strong>IPMA</strong></span>
                 <span>Atual/rajadas: <strong>Open-Meteo</strong> — uso não comercial, &lt;10 000 chamadas/dia</span>
                 <span>Histórico: <strong>ERA5 via Open-Meteo</strong> (ARCO-ERA5/BigQuery pendente)</span>

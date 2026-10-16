@@ -17,7 +17,7 @@ const Rail = (function() {
     const PANEL_TITLES = {
         openmeteo: 'Estado atual — Open-Meteo',
         omforecast: 'Previsão Open-Meteo',
-        ecmwf: 'ECMWF — Previsão 7 dias',
+        ecmwf: 'ECMWF — Previsão 72 h',
         ipma: 'Avisos IPMA',
         stations: 'Estações IPMA',
         era5: 'ERA5 — Histórico',

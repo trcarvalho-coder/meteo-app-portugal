@@ -1,5 +1,6 @@
 // ===== OpenMeteo Autonomous Panel with Expand/Collapse =====
 import { Config, Helpers } from '../config.js';
+import { fetchWithRetry, cacheKeyOf } from '../http.js';
 
 const OpenMeteoPanel = (function() {
     'use strict';
@@ -7,7 +8,8 @@ const OpenMeteoPanel = (function() {
     let currentLocation = null;
     let dataCache = {};
     let isExpanded = true;
-    const CACHE_DURATION = 300000;
+    let inFlight = null; // AbortController para cancelar pedidos obsoletos
+    const CACHE_DURATION = 600000; // TTL >= 10 min
 
     // ===== DOM Elements =====
     const getElements = () => ({
@@ -20,30 +22,23 @@ const OpenMeteoPanel = (function() {
 
     // ===== API Functions =====
 
-    async function fetchData(endpoint, params = {}, retryCount = 0) {
+    async function fetchData(endpoint, params = {}, { signal } = {}) {
         try {
-            const url = `${Config.openmeteo.baseUrl}${endpoint}`;
-            const queryString = new URLSearchParams(params).toString();
-            const response = await fetch(`${url}?${queryString}`);
-
-            if (!response.ok) {
-                if (response.status === 503 && retryCount < 3) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    return fetchData(endpoint, params, retryCount + 1);
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
+            const url = `${Config.openmeteo.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+            return await fetchWithRetry(url, { signal });
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             console.error('[OpenMeteoPanel] Erro ao buscar dados:', error);
             return null;
         }
     }
 
-    async function loadCurrentConditions(latitude, longitude, forceRefresh = false) {
-        const cacheKey = `current-${latitude.toFixed(4)}-${longitude.toFixed(4)}`;
+    // Pedido ÚNICO combinado (current + hourly + daily 7 dias); 3 e 5 dias
+    // são derivados por slice no cliente, não pedidos separados.
+    async function loadCombinedForecast(latitude, longitude, forceRefresh = false) {
+        const key = cacheKeyOf('combined', latitude, longitude);
         const now = Date.now();
-        const cached = dataCache[cacheKey];
+        const cached = dataCache[key];
 
         if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
             return cached.data;
@@ -53,14 +48,26 @@ const OpenMeteoPanel = (function() {
             latitude: latitude,
             longitude: longitude,
             current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index,cloud_cover',
+            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
+            forecast_hours: 24,
+            daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
+            forecast_days: 7,
             timezone: 'Europe/Lisbon',
             wind_speed_unit: 'kmh',
             temperature_unit: 'celsius',
             precipitation_unit: 'mm'
         };
 
-        const data = await fetchData('/forecast', params, 0);
-        if (!data || !data.current) return cached ? cached.data : null;
+        const data = await fetchData('/forecast', params, { signal: inFlight?.signal });
+        if (!data || (!data.current && !data.hourly && !data.daily)) return cached ? cached.data : null;
+
+        dataCache[key] = { data, timestamp: Date.now() };
+        return data;
+    }
+
+    async function loadCurrentConditions(latitude, longitude, forceRefresh = false) {
+        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+        if (!data || !data.current) return null;
 
         const conditions = {
             temperature: data.current.temperature_2m,
@@ -82,32 +89,12 @@ const OpenMeteoPanel = (function() {
             longitude: data.longitude
         };
 
-        dataCache[cacheKey] = { data: conditions, timestamp: now };
         return conditions;
     }
 
     async function loadHourlyForecast(latitude, longitude, forceRefresh = false) {
-        const cacheKey = `hourly-${latitude.toFixed(4)}-${longitude.toFixed(4)}`;
-        const now = Date.now();
-        const cached = dataCache[cacheKey];
-
-        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-            return cached.data;
-        }
-
-        const params = {
-            latitude: latitude,
-            longitude: longitude,
-            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
-            forecast_hours: 24,
-            timezone: 'Europe/Lisbon',
-            wind_speed_unit: 'kmh',
-            temperature_unit: 'celsius',
-            precipitation_unit: 'mm'
-        };
-
-        const data = await fetchData('/forecast', params, 0);
-        if (!data || !data.hourly) return cached ? cached.data : [];
+        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+        if (!data || !data.hourly) return [];
 
         const hourly = [];
         const hourlyData = data.hourly;
@@ -127,37 +114,19 @@ const OpenMeteoPanel = (function() {
             });
         }
 
-        dataCache[cacheKey] = { data: hourly, timestamp: now };
         return hourly;
     }
 
     async function loadDailyForecast(latitude, longitude, days = 7, forceRefresh = false) {
-        const cacheKey = `daily-${days}-${latitude.toFixed(4)}-${longitude.toFixed(4)}`;
-        const now = Date.now();
-        const cached = dataCache[cacheKey];
+        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+        if (!data || !data.daily) return [];
 
-        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-            return cached.data;
-        }
-
-        const params = {
-            latitude: latitude,
-            longitude: longitude,
-            forecast_days: days,
-            daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
-            timezone: 'Europe/Lisbon',
-            wind_speed_unit: 'kmh',
-            temperature_unit: 'celsius',
-            precipitation_unit: 'mm'
-        };
-
-        const data = await fetchData('/forecast', params, 0);
-        if (!data || !data.daily) return cached ? cached.data : [];
-
+        // os dias pedidos derivam por slice do único pedido de 7 dias
+        const limit = Math.min(days, data.daily.time.length);
         const forecast = [];
         const dailyData = data.daily;
 
-        for (let i = 0; i < dailyData.time.length; i++) {
+        for (let i = 0; i < limit; i++) {
             forecast.push({
                 date: new Date(dailyData.time[i]),
                 minTemp: dailyData.temperature_2m_min[i],
@@ -173,7 +142,6 @@ const OpenMeteoPanel = (function() {
             });
         }
 
-        dataCache[cacheKey] = { data: forecast, timestamp: now };
         return forecast;
     }
 
@@ -349,31 +317,61 @@ const OpenMeteoPanel = (function() {
 
     // ===== Public API =====
 
+    let updateTimer = null;
+
+    // Debounce de 300 ms + AbortController: cliques rápidos não acumulam
+    // pedidos; pedidos obsoletos são cancelados.
+    function requestUpdate(latitude, longitude) {
+        currentLocation = { lat: latitude, lng: longitude };
+        if (updateTimer) clearTimeout(updateTimer);
+        updateTimer = setTimeout(() => updatePanel(latitude, longitude), 300);
+    }
+
     async function updatePanel(latitude, longitude) {
         currentLocation = { lat: latitude, lng: longitude };
-        
+
+        if (inFlight) inFlight.abort();
+        inFlight = new AbortController();
+
         showLoading();
-        
+
         try {
-            const [current, hourly, daily3, daily5, daily7] = await Promise.all([
-                loadCurrentConditions(latitude, longitude, true),
-                loadHourlyForecast(latitude, longitude, true),
-                loadDailyForecast(latitude, longitude, 3, true),
-                loadDailyForecast(latitude, longitude, 5, true),
-                loadDailyForecast(latitude, longitude, 7, true)
-            ]);
+            const current = await loadCurrentConditions(latitude, longitude);
+            const hourly = await loadHourlyForecast(latitude, longitude);
+            const daily = await loadDailyForecast(latitude, longitude, 7);
+            if (!current && !hourly.length && !daily.length) {
+                hideLoading();
+                showUnavailable();
+                return;
+            }
+            hideUnavailable();
 
             renderCurrentConditions(current);
             renderHourlyForecast(hourly);
-            renderDailyForecast(daily3, 3);
-            renderDailyForecast(daily5, 5);
-            renderDailyForecast(daily7, 7);
-            
+            renderDailyForecast(daily.slice(0, 3), 3);
+            renderDailyForecast(daily.slice(0, 5), 5);
+            renderDailyForecast(daily, 7);
+
             hideLoading();
         } catch (error) {
+            if (error.name === 'AbortError') return;
             console.error('[OpenMeteoPanel] Error updating panel:', error);
             hideLoading();
+            showUnavailable();
         }
+    }
+
+    function showUnavailable() {
+        const e = getElements();
+        if (e.errorMessage) {
+            e.errorMessage.textContent =
+                'Serviço Open-Meteo temporariamente indisponível. Sem valores falsos apresentados.';
+        }
+    }
+
+    function hideUnavailable() {
+        const e = getElements();
+        if (e.errorMessage) e.errorMessage.textContent = '';
     }
 
     function setLocation(lat, lng) {
@@ -415,5 +413,5 @@ const OpenMeteoPanel = (function() {
     };
 })();
 
-window.OpenMeteoPanel = OpenMeteoPanel;
+if (typeof window !== 'undefined') window.OpenMeteoPanel = OpenMeteoPanel;
 export default OpenMeteoPanel;

@@ -2,7 +2,7 @@
 
 Pipeline:
 1. Descoberta de execuções no bucket S3 ecmwf-forecasts (sem credenciais).
-2. Seleção da execução completa mais recente (00z ou 12z) que cubra 168 h.
+2. Seleção da execução completa mais recente (00z ou 12z) que cubra 72 h.
 3. Obtenção parcial por campo via índices (ecmwf-opendata usa HTTP range requests).
 4. Recorte para a área de interesse (Portugal continental + Madeira + Açores).
 5. Normalização de unidades e semântica temporal.
@@ -39,11 +39,14 @@ CACHE_DIR = os.environ.get("METEO_CACHE_DIR", "/tmp/meteo-cache")
 CACHE_TTL_SECONDS = int(os.environ.get("METEO_CACHE_TTL", "3600"))
 PROCESSING_VERSION = "v1"
 
-# Passos nativos: 3 h até 144 h; 6 h até 168 h (validado no bucket em 2026-10-16).
+# Horizonte de previsão: 0 h a 72 h. Passos nativos de 3 h -> 25 instantes.
+# Pode ser reduzido/opcionado via ECMWF_MAX_STEP (usado pela GitHub Action).
+MAX_STEP_HOURS = int(os.environ.get("ECMWF_MAX_STEP", "72"))
+
+
 def native_steps():
-    steps = [h for h in range(0, 145, 3)]
-    steps += [h for h in range(150, 169, 6)]
-    return steps
+    """Passos nativos: 0 h a MAX_STEP_HOURS (72) de 3 em 3 h."""
+    return list(range(0, MAX_STEP_HOURS + 1, 3))
 
 
 class FetchError(Exception):
@@ -99,7 +102,11 @@ def discover_runs() -> list[dict]:
 
 
 def run_has_full_horizon(run: dict) -> bool:
-    """Uma execução cobre 168 h se existirem objetos até -168h- (qualquer stream)."""
+    """Uma execução cobre o horizonte (72 h) se existir o objeto -72h-.
+
+    3 h são suficientes para 72 h de passos nativos; os passos intermédios
+    são validados na escrita (precompute), não na seleção.
+    """
     prefix = f"{run['date']}/{run['hour']}/ifs/0p25/oper/"
     try:
         objects = list_prefix(prefix)
@@ -110,12 +117,12 @@ def run_has_full_horizon(run: dict) -> bool:
         m = re.search(r"-(\d+)h-oper-fc\.grib2$", o["key"])
         if m:
             steps.add(int(m.group(1)))
-    return max(steps, default=-1) >= 168
+    return max(steps, default=-1) >= MAX_STEP_HOURS
 
 
 def select_run() -> dict | None:
-    """Seleciona a execução 00z/12z completa mais recente. Não escolhe
-    automaticamente a mais recente se estiver incompleta."""
+    """Seleciona a execução 00z/12z completa mais recente (cobertura até 72 h).
+    Não escolhe automaticamente a mais recente se estiver incompleta."""
     for run in discover_runs():
         if run_has_full_horizon(run):
             return run

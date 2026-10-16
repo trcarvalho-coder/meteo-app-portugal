@@ -7,6 +7,7 @@
 // pertence a localidade oficial. Fonte identificada em cada seccao.
 
 import IpmaApi from './ipma-api.js';
+import { formatNumber } from '../format.js';
 
 const SELECTED_KEY = '__ipmaSelected';
 
@@ -47,11 +48,11 @@ async function buildPopupContent(point) {
             if (obs.staleObs) obsHtml += '<p class="ipma-pop-stale">Observação desatualizada.</p>';
             obsHtml += `<p class="ipma-pop-meta">Observado às ${timeStr(obs.time)} (hora da estação)</p>`;
             obsHtml += '<div class="ipma-pop-obs">';
-            obsHtml += obsRow('Temperatura', obs.temperature != null ? obs.temperature.toFixed(1) : null, ' °C');
+            obsHtml += obsRow('Temperatura', obs.temperature != null ? formatNumber(obs.temperature, 1) : null, ' °C');
             obsHtml += obsRow('Humidade', obs.humidity != null ? Math.round(obs.humidity) : null, ' %');
-            obsHtml += obsRow('Vento', obs.windSpeedKmh != null ? obs.windSpeedKmh.toFixed(1) : null, ' km/h');
+            obsHtml += obsRow('Vento', obs.windSpeedKmh != null ? formatNumber(obs.windSpeedKmh, 1) : null, ' km/h');
             obsHtml += obsRow('Pressão', obs.pressure != null ? Math.round(obs.pressure) : null, ' hPa');
-            obsHtml += obsRow('Precipitação (acumulada)', obs.precipitation != null ? obs.precipitation.toFixed(1) : null, ' mm');
+            obsHtml += obsRow('Precipitação (acumulada)', obs.precipitation != null ? formatNumber(obs.precipitation, 1) : null, ' mm');
             obsHtml += '</div>';
         }
     }

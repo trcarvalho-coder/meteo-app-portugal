@@ -37,7 +37,7 @@ python -m pytest tests/ -q    # pytest (recorte, passos, validade, incrementos)
 
 | Papel | Fonte | Identificação |
 |---|---|---|
-| Previsão 7 dias (camadas) | ECMWF Open Data — AWS `s3://ecmwf-forecasts` (eu-central-1), IFS HRES oper 0.25°, CC-BY-4.0 | "ECMWF Open Data (AWS)" |
+| Previsão 72 h (camadas) | ECMWF Open Data — AWS `s3://ecmwf-forecasts` (eu-central-1), IFS HRES oper 0.25°, CC-BY-4.0 | "ECMWF Open Data (AWS)" |
 | Atual + rajadas | Open-Meteo (fonte secundária identificada; rajadas indisponíveis no subconjunto AWS) | "Open-Meteo" |
 | Alertas | IPMA open-data | "IPMA" |
 | Histórico | Open-Meteo Historical API — ERA5 (reanálise 0.25°, desde 1940). Fonte interina identificada; ARCO-ERA5/BigQuery pendente | "ERA5 — Histórico" |
@@ -56,12 +56,12 @@ python -m pytest tests/ -q    # pytest (recorte, passos, validade, incrementos)
 ## Resolução e passos efetivos (validados por download real)
 
 - Espacial: 0,25° (grelha global 721×1440; recortada para 30–44°N, 32°W–6°W = 57×105 células, cobrindo Portugal continental, Madeira e Açores).
-- Temporal: passos nativos de **3 h até 144 h** e **6 h até 168 h** (confirmado no bucket: objetos até `-168h-`).
-- Execução: 00z ou 12z IFS HRES `oper`, a mais recente **completa** que cobre 168 h (não se escolhe automaticamente a mais recente se incompleta).
+- Temporal: passos nativos de **3 h até 72 h** (25 instantes, 0 h a 72 h).
+- Execução: 00z ou 12z IFS HRES `oper`, a mais recente **completa** que cobre 72 h (não se escolhe automaticamente a mais recente se incompleta).
 
 ## Política temporal por variável
 
-- **Instantâneos** (temperatura, vento): passos nativos; passos intermédios de 3 h após 144 h são marcados como indisponíveis (interpolação opcional identificada ainda não implementada).
+- **Instantâneos** (temperatura, vento): passos nativos de 3 h, 0..72 h.
 - **Precipitação**: apenas passos nativos; incrementos por diferença de acumulados `tp(step) − tp(prev)`; nunca soma de acumulados; sem desagregação artificial de 6 h em 3 h.
 - **Rajadas/extremos**: janelas estatísticas preservadas; nenhuma interpolação de máximos como instantâneos.
 
@@ -72,15 +72,16 @@ python -m pytest tests/ -q    # pytest (recorte, passos, validade, incrementos)
 
 ## Estado das integrações
 
-- **Implementado e validado**: auditoria/correção Open-Meteo (30 testes JS), remoção do painel esquerdo, widgets expansíveis acessíveis (`aria-expanded`, teclado, foco visível), backend ECMWF AWS (14 testes Python; downloads e decodificação reais validados: 2t Lisboa 22,0 °C; vento máx 50,4 km/h na área; incremento 0–3 h até 10,16 mm), linha temporal tri-horária 57 instantes/168 h, legendas por variável com fontes/execuções/validades, atribuições e licenças.
+- **Implementado e validado**: auditoria/correção Open-Meteo (30 testes JS), remoção do painel esquerdo, widgets expansíveis acessíveis (`aria-expanded`, teclado, foco visível), backend ECMWF AWS (14 testes Python; downloads e decodificação reais validados: 2t Lisboa 22,0 °C; vento máx 50,4 km/h na área; incremento 0–3 h até 10,16 mm), linha temporal tri-horária 25 instantes/72 h, legendas por variável com fontes/execuções/validades, atribuições e licenças.
 - **Implementado mas não validado no ambiente disponível**: renderização das camadas no mapa ArcGIS e pop-ups (requer browser; o SDK ArcGIS e o backend não são executáveis no sandbox de CI).
 - **Implementado (fonte interina)**: ERA5 histórico via Open-Meteo Historical API (reanálise ERA5, 0.25°, 1940→), com seleção de período, fonte identificada e contexto temporal independente. **Pendente**: ARCO-ERA5/BigQuery (exige projeto GCP com faturação ativa) — quando disponível, substitui a fonte interina.
 - **Não suportado pela fonte**: rajada a 10 m no subconjunto AWS (usar fallback Open-Meteo identificado); extremos nativos mn2t/mx2t no AWS.
 
 ## Limitações conhecidas
 
-- Interpolação temporal de instantâneos nos passos de 6 h após 144 h está marcada como indisponível em vez de estimada.
-- A linha temporal apresenta validade relativa ao dia atual até o backend reportar a execução real no widget ECMWF.
+- A linha temporal apresenta validade = execução (run) + passo, lida do índice `latest.json`.
+- O aviso "Only use ES modules from the ArcGIS CDN for testing" do SDK ArcGIS é informativo: produção deve usar `@arcgis/core` via npm; o CDN fica apenas para testes.
+- Causa documentada da execução incompleta 2026101600z (logs da Action 38888987544): a job foi cancelada ao atingir `timeout-minutes: 120` durante um retry do S3 ("503 Slow Down ... Retrying in 120 seconds", tentativa 2 de 500) nos passos ~69-72 h. O índice anunciava 0-168 h mas a pasta só tinha 0-30 h. Com o horizonte de 72 h, timeout de 45 min, validação pré-commit e `availableSteps`, o índice apenas anuncia passos efetivamente escritos.
 - O recorte espacial desenha células nativas 0,25° (sem interpolação para raster contínuo); a consulta pontual usa a célula mais próxima.
 - O S3 do ECMWF aplica "503 Slow Down" em pedidos frequentes; o backend repete com backoff (o que pode tornar o primeiro passo lento).
 

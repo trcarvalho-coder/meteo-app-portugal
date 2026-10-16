@@ -14,6 +14,7 @@ import ECMWFPanel from './panels/ecmwf-panel.js';
 import IpmaLayers, { attachWarningsHover } from './meteo/ipma-layers.js';
 import IpmaPopup from './meteo/ipma-popup.js';
 import IpmaApi from './meteo/ipma-api.js';
+import { formatNumber } from './format.js';
 
 window.IpmaLayers = IpmaLayers;
 
@@ -58,11 +59,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         let content = `<div class="ipma-pop-section"><h4>${a.stationName || 'Estação IPMA'}</h4>`;
                         if (obs) {
                             content += `<p class="ipma-pop-meta">Observado às ${obs.time.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (hora da estação)</p>`;
-                            content += obs.temperature != null ? `<div class="ipma-pop-row"><span>Temperatura</span><strong>${obs.temperature.toFixed(1)} °C</strong></div>` : '';
+                            content += obs.temperature != null ? `<div class="ipma-pop-row"><span>Temperatura</span><strong>${formatNumber(obs.temperature, 1, '°C')}</strong></div>` : '';
                             content += obs.humidity != null ? `<div class="ipma-pop-row"><span>Humidade</span><strong>${Math.round(obs.humidity)} %</strong></div>` : '';
-                            content += obs.windSpeedKmh != null ? `<div class="ipma-pop-row"><span>Vento</span><strong>${obs.windSpeedKmh.toFixed(1)} km/h</strong></div>` : '';
+                            content += obs.windSpeedKmh != null ? `<div class="ipma-pop-row"><span>Vento</span><strong>${formatNumber(obs.windSpeedKmh, 1, 'km/h')}</strong></div>` : '';
                             content += obs.pressure != null ? `<div class="ipma-pop-row"><span>Pressão</span><strong>${Math.round(obs.pressure)} hPa</strong></div>` : '';
-                            content += obs.precipitation != null ? `<div class="ipma-pop-row"><span>Precipitação (acumulada)</span><strong>${obs.precipitation.toFixed(1)} mm</strong></div>` : '';
+                            content += obs.precipitation != null ? `<div class="ipma-pop-row"><span>Precipitação (acumulada)</span><strong>${formatNumber(obs.precipitation, 1, 'mm')}</strong></div>` : '';
                             if (obs.staleObs) content += '<p class="ipma-pop-stale">Observação desatualizada.</p>';
                         } else {
                             content += '<p class="ipma-pop-na">Sem observação disponível.</p>';
@@ -128,17 +129,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    let locationChangeTimer = null;
     LocationPanel.setOnLocationChange((location) => {
         if (!location) return;
-        OpenMeteoPanel.updatePanel(location.lat, location.lng);
-        OpenMeteoForecastPanel.setLocation(location.lat, location.lng, location.name);
-        IPMAPanel.updatePanel(location.lat, location.lng);
-        ERA5Panel.setLocation(location.lat, location.lng);
-        if (MapModule.isInitialized()) {
-            MapModule.centerOnCoordinates(location.lng, location.lat, 12);
-            MapModule.addLocationMarker(location.lng, location.lat, location.name || 'Localizacao');
-            MapModule.exitMapSelectionMode();
-        }
+        if (locationChangeTimer) clearTimeout(locationChangeTimer);
+        locationChangeTimer = setTimeout(() => {
+            OpenMeteoPanel.updatePanel(location.lat, location.lng);
+            OpenMeteoForecastPanel.setLocation(location.lat, location.lng, location.name);
+            IPMAPanel.updatePanel(location.lat, location.lng);
+            ERA5Panel.setLocation(location.lat, location.lng);
+            if (MapModule.isInitialized()) {
+                MapModule.centerOnCoordinates(location.lng, location.lat, 12);
+                MapModule.addLocationMarker(location.lng, location.lat, location.name || 'Localizacao');
+                MapModule.exitMapSelectionMode();
+            }
+        }, 300);
     });
 
     const mapSelectBtn = document.getElementById('location-map-select-btn');

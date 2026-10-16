@@ -11,14 +11,46 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 import ecmwf_adapter as a  # noqa: E402
 
 
-def test_native_steps_3h_to_144h_6h_afterwards():
+def test_native_steps_3h_to_72h():
+    # horizonte 0..72 h de 3 em 3 h -> 25 instantes
     steps = a.native_steps()
-    assert steps[0] == 0
-    assert 144 in steps
-    assert 168 in steps
-    assert 147 not in steps
-    assert all(s % 3 == 0 for s in steps if s <= 144)
-    assert [s for s in steps if s > 144] == [150, 156, 162, 168]
+    assert steps == list(range(0, 73, 3))
+    assert len(steps) == 25
+    assert steps[0] == 0 and steps[-1] == 72
+    assert 75 not in steps and 168 not in steps
+
+
+def test_max_step_env_default_72():
+    assert a.MAX_STEP_HOURS == 72
+
+
+def test_run_has_full_horizon_requires_72h(monkeypatch):
+    # cobertura exigida: ate 72 h (nao 168 h); chaves no formato real do bucket:
+    # <date>/<hour>/ifs/0p25/oper/<date><time>-<step>h-oper-fc.grib2
+    monkeypatch.setattr(a, "list_prefix", lambda prefix: [
+        {"key": "20261016/00z/ifs/0p25/oper/20261016000000-0h-oper-fc.grib2", "size": 1},
+        {"key": "20261016/00z/ifs/0p25/oper/20261016000000-72h-oper-fc.grib2", "size": 1},
+    ])
+    assert a.run_has_full_horizon({"date": "20261016", "hour": "00z"}) is True
+    monkeypatch.setattr(a, "list_prefix", lambda prefix: [
+        {"key": "20261016/00z/ifs/0p25/oper/20261016000000-66h-oper-fc.grib2", "size": 1},
+    ])
+    assert a.run_has_full_horizon({"date": "20261016", "hour": "00z"}) is False
+
+
+def test_precompute_write_index_lists_only_written_steps(tmp_path, monkeypatch):
+    import sys, os
+    backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")
+    sys.path.insert(0, backend_dir)
+    import precompute
+    run = {"date": "20261016", "hour": "00z"}
+    steps = [0, 3, 6]
+    idx = precompute.write_index(run, steps)
+    assert idx["run"] == "20261016/00z"
+    assert idx["maxStep"] == 6
+    assert idx["availableSteps"] == steps
+    assert idx["nativeSteps"] == steps
+    assert "generatedAt" in idx
 
 
 def test_units_temperature_kelvin_to_celsius():
@@ -87,8 +119,8 @@ def test_nan_values_are_null_not_zero():
 
 def test_precipitation_increment_requires_native_step():
     run = {"date": "20261016", "hour": "00z"}
-    # passo 147 não é nativo: sem desagregação artificial
-    assert a.precipitation_increment(run, 147) is None
+    # passo 75 não é nativo no horizonte 72 h: sem desagregação artificial
+    assert a.precipitation_increment(run, 75) is None
 
 
 def test_increment_by_difference_not_sum():

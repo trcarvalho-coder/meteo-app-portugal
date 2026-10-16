@@ -1,6 +1,7 @@
-// ===== Widget "ECMWF — Previsão 7 dias" =====
+// ===== Widget "ECMWF — Previsão 72 h" =====
 // Integra backend que processa GRIB2 do bucket AWS ecmwf-forecasts.
 // Estados: loading, erro (com nova tentativa), indisponível, ativo.
+// Horizonte: 0 h a 72 h, passos de 3 h -> 25 instantes.
 
 import { VARIABLE_CATALOG, SCALES } from '../meteo/catalog.js';
 import EcmwfApi from '../meteo/ecmwf-api.js';
@@ -16,6 +17,9 @@ const ECMWFPanel = (function() {
     let runInfo = null;
     let activeField = null;
     let inFlight = null; // AbortController para cancelar pedidos obsoletos
+    let nativeSteps = [];
+    let prefetchInFlight = 0;
+    const PREFETCH_CONCURRENCY = 2;
 
     const els = () => ({
         loading: document.getElementById('ecmwf-loading'),
@@ -44,25 +48,30 @@ const ECMWFPanel = (function() {
             EcmwfLayer.setActiveOpacity(parseInt(e.opacity.value, 10) / 100);
         });
 
+        try {
+            runInfo = await EcmwfApi.getRun();
+            // fonte de verdade: nativeSteps (availableSteps) do índice latest.json
+            const { nativeSteps: steps } = await EcmwfApi.getSteps();
+            nativeSteps = steps && steps.length ? steps : nativeStepList();
+        } catch (err) {
+            nativeSteps = nativeStepList();
+        }
+
         Timeline.init({
-            native: nativeStepList(),
+            native: nativeSteps.length === Timeline.HORIZON_STEPS ? nativeSteps : nativeStepList(),
+            runBase: runBaseIso(),
             onStep: (index) => {
                 const { step } = Timeline.stepInfo(index);
                 currentStep = step;
                 loadStep(step);
+                prefetchNextSteps(step);
             }
         });
 
-        try {
-            runInfo = await EcmwfApi.getRun();
-            if (e.runInfo) {
-                e.runInfo.textContent =
-                    `Execução ${runInfo} — IFS HRES oper 0.25° (AWS). Selecionada por ser a ` +
-                    `execução 00z/12z completa mais recente que cobre 168 h.`;
-            }
-        } catch (err) {
-            if (e.runInfo) e.runInfo.textContent = 'Backend ECMWF indisponível.';
-            showError(err);
+        if (e.runInfo && runInfo) {
+            e.runInfo.textContent =
+                `Execução ${runInfo} — IFS HRES oper 0.25° (AWS). Selecionada por ser a ` +
+                `execução 00z/12z completa mais recente que cobre 72 h.`;
         }
 
         updateVariableMeta();
@@ -71,9 +80,30 @@ const ECMWFPanel = (function() {
 
     function nativeStepList() {
         const steps = [];
-        for (let h = 0; h <= 144; h += 3) steps.push(h);
-        for (let h = 150; h <= 168; h += 6) steps.push(h);
+        for (let h = 0; h <= 72; h += 3) steps.push(h);
         return steps;
+    }
+
+    function runBaseIso() {
+        // hora da execução (ex.: "20261016/00z") em ISO UTC; nula se indisponível
+        if (!runInfo) return null;
+        const m = /^(\d{4})(\d{2})(\d{2})\/(\d{2})z$/.exec(runInfo);
+        if (!m) return null;
+        return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:00:00Z`;
+    }
+
+    // Pré-carrega os 2-3 passos seguintes durante a navegação/animação,
+    // com limite de concorrência.
+    function prefetchNextSteps(step) {
+        const next = nativeSteps.filter(s => s > step).slice(0, 3);
+        for (const s of next) {
+            if (prefetchInFlight >= PREFETCH_CONCURRENCY) break;
+            const key = `${currentVariable}-${s}`;
+            if (EcmwfApi.isCached && EcmwfApi.isCached(key)) continue;
+            prefetchInFlight++;
+            EcmwfApi.getField(currentVariable, s).catch(() => { /* indisponível */ })
+                .finally(() => { prefetchInFlight--; });
+        }
     }
 
     function updateVariableMeta() {
@@ -101,7 +131,7 @@ const ECMWFPanel = (function() {
                 try {
                     field = await EcmwfApi.getPrecipIncrement(step, { signal: inFlight.signal });
                 } catch (err) {
-                    if (String(err.message).includes('Passo não nativo')) {
+                    if (err.code === 'unavailable' || String(err.message).includes('Passo não nativo')) {
                         throw Object.assign(
                             new Error(`Precipitação indisponível no passo de ${step} h: sem passo nativo; não é feita desagregação artificial.`),
                             { code: 'unavailable' }
@@ -124,6 +154,13 @@ const ECMWFPanel = (function() {
             const view = window.MapModule?.getView?.();
             if (view && window.arcgis) {
                 const meta = VARIABLE_CATALOG[currentVariable];
+                const scaleKey = scaleKeyFor(currentVariable);
+                if (!scaleKey) {
+                    throw Object.assign(
+                        new Error(`Sem escala definida no catálogo para '${currentVariable}'.`),
+                        { code: 'unavailable' }
+                    );
+                }
                 EcmwfLayer.renderField(view.map, field, {
                     displayName: meta.displayName,
                     unit: field.unit,
@@ -131,16 +168,18 @@ const ECMWFPanel = (function() {
                     run: field.run,
                     validTimeUtc: field.validTimeUtc,
                     temporalType: field.temporalType,
-                    scaleKey: scaleKeyFor(currentVariable),
+                    scaleKey,
                     opacity: parseInt(els().opacity?.value || '70', 10) / 100
                 });
                 renderLegend(field);
-                    }
+            }
         } catch (err) {
             if (err.name === 'AbortError') return;
             e.loading?.setAttribute('hidden', '');
-            if (err.code === 'unavailable') {
-                showUnavailable(err.message);
+            if (err.code === 'unavailable' || err instanceof EcmwfApi.StepUnavailableError) {
+                showUnavailable(err instanceof EcmwfApi.StepUnavailableError
+                    ? 'Passo ainda não publicado para esta execução.'
+                    : err.message);
             } else {
                 showError(err);
             }
@@ -148,7 +187,21 @@ const ECMWFPanel = (function() {
     }
 
     function scaleKeyFor(variable) {
-        return variable; // temperature/windSpeed/precipitation em SCALES
+        // a escala vive no catálogo: VARIABLE_CATALOG[variable].scale
+        // (windSpeed usa SCALES.wind; devolver 'windSpeed' era a causa da
+        // camada de vento a negro: SCALES.windSpeed não existe)
+        const meta = VARIABLE_CATALOG[variable];
+        if (!meta || !meta.scale || !SCALES[scaleKeyOfScale(meta.scale)]) {
+            return null;
+        }
+        return scaleKeyOfScale(meta.scale);
+    }
+
+    function scaleKeyOfScale(scale) {
+        for (const [key, value] of Object.entries(SCALES)) {
+            if (value === scale) return key;
+        }
+        return null;
     }
 
     function renderLegend(field) {
@@ -174,9 +227,9 @@ const ECMWFPanel = (function() {
         e.loading?.setAttribute('hidden', '');
         e.error?.removeAttribute('hidden');
         if (e.errorMessage) {
-            e.errorMessage.textContent =
-                `Falha ao obter camada ECMWF: ${err.message}. ` +
-                `Verifique se o backend local está a correr (python backend/server.py).`;
+            // no site publicado não existe backend local: não pedir ao
+            // utilizador para correr backend/server.py
+            e.errorMessage.textContent = `Falha ao obter camada ECMWF: ${err.message}.`;
         }
     }
 
