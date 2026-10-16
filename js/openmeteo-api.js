@@ -85,13 +85,13 @@ const OpenMeteoModule = (function() {
 
         const params = {
             latitude: latitude,
-            longitude: longitude,,
+            longitude: longitude,
+            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
+            forecast_hours: 24,
+            timezone: 'Europe/Lisbon',
             wind_speed_unit: 'kmh',
             temperature_unit: 'celsius',
             precipitation_unit: 'mm'
-            hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
-            forecast_hours: 24,
-            timezone: 'Europe/Lisbon'
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
@@ -130,16 +130,15 @@ const OpenMeteoModule = (function() {
         if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
             return cached.data;
         }
-,
-wind_speed_unit: 'kmh',
-temperature_unit: 'celsius',
-precipitation_unit: 'mm'
         const params = {
             latitude: latitude,
             longitude: longitude,
             forecast_days: days,
             daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
