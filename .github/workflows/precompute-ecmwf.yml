@@ -1,12 +1,13 @@
 name: Precompute ECMWF
 
-# Pre-computa os campos ECMWF (execucao 00z/12z mais recente completa) e
-# publica JSON estatico em data/forecast/ servido pelo GitHub Pages.
-# O widget ECMWF do site publicado le estes JSON (sem backend em runtime).
+# Pre-computa os campos ECMWF (execução 00z/12z mais recente completa até 72 h)
+# e publica JSON estático em data/forecast/ servido pelo GitHub Pages.
+# O widget ECMWF do site publicado lê estes JSON (sem backend em runtime).
+# Horizonte: 0 h a 72 h, passos de 3 h -> 25 passos x 3 variáveis.
 
 on:
   schedule:
-    # 06:10 e 18:10 UTC: apos a publicacao das execucoes 00z/12z do ECMWF
+    # 06:10 e 18:10 UTC: após a publicação das execuções 00z/12z do ECMWF
     - cron: "10 6,18 * * *"
   workflow_dispatch:
 
@@ -17,10 +18,13 @@ concurrency:
   group: precompute-ecmwf
   cancel-in-progress: false
 
+env:
+  ECMWF_MAX_STEP: "72"
+
 jobs:
   precompute:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +32,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar dependencias
+      - name: Instalar dependências
         run: pip install -r backend/requirements.txt
 
       - name: Cache de campos GRIB (acelera e mitiga rate-limit do S3)
@@ -38,18 +42,41 @@ jobs:
           key: ecmwf-cache-${{ github.run_id }}
           restore-keys: ecmwf-cache-
 
-      - name: Pre-computar campos
+      - name: Pre-computar campos (0..72 h, passos de 3 h)
         env:
           METEO_CACHE_DIR: /tmp/meteo-cache
+          ECMWF_MAX_STEP: "72"
         run: python backend/precompute.py
 
-      # Mantem apenas a execucao atual e a anterior (limite ~1 GB do Pages)
-      - name: Limpar execucoes antigas
+      - name: Validar índice e ficheiros antes do commit
+        run: |
+          python - <<'EOF'
+          import json, os, sys
+          run_dir = None
+          with open("data/forecast/latest.json", encoding="utf-8") as fh:
+              idx = json.load(fh)
+          assert idx.get("maxStep") == 72, f"maxStep != 72: {idx.get('maxStep')}"
+          steps = idx.get("availableSteps") or []
+          assert len(steps) == 25, f"availableSteps tem {len(steps)} elementos (esperado 25)"
+          assert steps[0] == 0 and steps[-1] == 72
+          run_id = idx["run"].replace("/", "")
+          for step in steps:
+              for var in ("temperature", "windSpeed", "precipitation"):
+                  path = f"data/forecast/{run_id}/{var}-{step}h.json"
+                  assert os.path.exists(path), f"falta {path}"
+                  with open(path, encoding="utf-8") as fh:
+                      field = json.load(fh)
+                  assert field.get("values") is not None, f"sem valores em {path}"
+          print(f"OK: {run_id} — 25 passos x 3 variáveis validados (maxStep 72)")
+          EOF
+
+      # Mantém apenas a execução atual e a anterior (limite ~1 GB do Pages)
+      - name: Limpar execuções antigas
         run: |
           ls -1d data/forecast/*/ | sort | head -n -2 | xargs -r rm -rf
 
-      - name: Publicar dados no repositorio (servidos pelo Pages)
+      - name: Publicar dados no repositório (servidos pelo Pages)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "data: campos ECMWF pre-computados (auto)"
+          commit_message: "data: campos ECMWF pre-computados 72 h (auto)"
           file_pattern: data/forecast/*.json data/forecast/**/*.json

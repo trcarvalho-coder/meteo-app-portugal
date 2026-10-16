@@ -147,11 +147,20 @@ const LocationPanel = (function() {
                     setLocation(lat, lng, 'Localização Atual');
                 },
                 (error) => {
-                    console.error('[LocationPanel] GPS Error:', error);
+                    // aviso não bloqueante (timeout code 3, permissão code 1)
+                    console.warn('[LocationPanel] GPS:', error && error.message);
                     if (elements.latDisplay) elements.latDisplay.textContent = '--';
-                    alert('⚠️ Erro ao obter localização GPS');
+                    const reason = error && error.code === 3
+                        ? 'A obtenção da localização demorou demasiado.'
+                        : 'Localização indisponível de momento.';
+                    const note = document.getElementById('location-gps-note');
+                    if (note) {
+                        note.textContent = reason;
+                        note.removeAttribute('hidden');
+                        setTimeout(() => note.setAttribute('hidden', ''), 8000);
+                    }
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
             );
         } else {
             alert('⚠️ Geolocalização não suportada pelo navegador');

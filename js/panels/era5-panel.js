@@ -4,6 +4,7 @@
 // interina ate ARCO-ERA5/BigQuery); sem dados simulados.
 
 import Era5Api from '../meteo/era5-api.js';
+import { formatNumber } from '../format.js';
 
 const ERA5Panel = (function() {
     'use strict';
@@ -109,7 +110,7 @@ const ERA5Panel = (function() {
                     '<span class="forecast-max">' + (day.maxTemp != null ? Math.round(day.maxTemp) + '&deg;' : '--') + '</span>' +
                     '<span class="forecast-min">' + (day.minTemp != null ? Math.round(day.minTemp) + '&deg;' : '--') + '</span>' +
                 '</div>' +
-                '<div class="era5-detail">💧 ' + (day.precipitation != null ? day.precipitation.toFixed(1) + ' mm' : '--') + '</div>' +
+                '<div class="era5-detail">💧 ' + (day.precipitation != null ? formatNumber(day.precipitation, 1, 'mm') : '--') + '</div>' +
                 '<div class="era5-detail">🌬️ ' + (day.maxWind != null ? Math.round(day.maxWind) + ' km/h' : '--') + '</div>';
             scroll.appendChild(item);
         }

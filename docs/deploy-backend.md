@@ -1,6 +1,6 @@
 # Implantação do backend ECMWF
 
-O widget "ECMWF — Previsão 7 dias" no site publicado precisa de um backend que processa GRIB2 do bucket AWS `ecmwf-forecasts` (o browser não pode descarregar nem descodificar ficheiros GRIB2 globais).
+O widget "ECMWF — Previsão 72 h" no site publicado precisa de um backend que processa GRIB2 do bucket AWS `ecmwf-forecasts` (o browser não pode descarregar nem descodificar ficheiros GRIB2 globais).
 
 ## Como funciona
 
@@ -9,7 +9,7 @@ Browser (site publicado)  --->  Backend (server.py)  --->  S3 ecmwf-forecasts (A
         JSON normalizado          GRIB2 + cfgrib/ecCodes        pedidos parciais
 ```
 
-O frontend chama o backend através de `window.ECMWF_BACKEND_URL` (definida no `index.html`), com fallback para `http://127.0.0.1:8787` em desenvolvimento.
+O frontend chama o backend através de `window.ECMWF_BACKEND_URL` (definida no `index.html`), com fallback para `http://127.0.0.1:8787` apenas em desenvolvimento (localhost); em produção não há fallback.
 
 ## Configuração do frontend
 

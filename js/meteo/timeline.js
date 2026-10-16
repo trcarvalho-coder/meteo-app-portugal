@@ -1,14 +1,11 @@
-// ===== Linha temporal tri-horária para 7 dias (168 h) =====
+// ===== Linha temporal tri-horária para 72 h =====
 // Política temporal:
-// - Instantâneos (temperatura, vento): passos nativos; interpolação linear
-//   opcional e claramente identificada nos passos intermédios.
-//   Vento vetorial: interpola u/v antes de calcular magnitude (backend
-//   devolve magnitude por passo; interpolação marcada como estimada).
+// - Instantâneos (temperatura, vento): passos nativos de 3 h, 0..72 h.
 // - Precipitação: apenas passos nativos; incrementos por diferença de
-//   acumulados; sem desagregação artificial de 6 h em 3 h.
+//   acumulados; sem desagregação artificial.
 // - Rajadas/extremos: janelas estatísticas preservadas (não interpoladas).
 
-const HORIZON_STEPS = 57; // 57 instantes: 0h..168h em passos de 3 h (ambos incluídos)
+const HORIZON_STEPS = 25; // 25 instantes: 0h..72h em passos de 3 h (ambos incluídos)
 
 const Timeline = (function() {
     'use strict';
@@ -20,10 +17,12 @@ const Timeline = (function() {
     let speedMs = 1000;
     let loop = true;
     let timezone = 'Europe/Lisbon';
+    let runBaseMs = null; // hora da execução (UTC) como base da validade
 
     // UTC interno; apresentação no fuso selecionado
-    function init({ native, onStep }) {
+    function init({ native, onStep, runBase }) {
         nativeSteps = native.slice();
+        runBaseMs = runBase != null ? Date.parse(runBase) : null;
         onStepChange = onStep;
         const range = document.getElementById('tl-range');
         if (range) {
@@ -66,12 +65,14 @@ const Timeline = (function() {
     function renderDatetime() {
         const out = document.getElementById('tl-datetime');
         if (!out) return;
-        // validade = execução + prazo; a execução é mostrada no widget ECMWF
+        // validade = execução (run) + prazo; nunca relativa a `new Date()`
         const hours = indexToStep(currentIndex);
-        // data/hora apresentada relativa ao dia atual (a execução real vem do backend)
-        const base = new Date();
-        base.setUTCMinutes(0, 0, 0);
-        const d = new Date(base.getTime() + hours * 3600000);
+        const base = runBaseMs != null && !Number.isNaN(runBaseMs)
+            ? runBaseMs
+            : null;
+        const d = base != null
+            ? new Date(base + hours * 3600000)
+            : new Date(Date.UTC() + hours * 3600000);
         try {
             out.textContent = d.toLocaleString('pt-PT', {
                 timeZone: timezone,
@@ -93,7 +94,7 @@ const Timeline = (function() {
             text = `Sem passo nativo (${step} h) — valor interpolado identificado ou indisponível`;
         }
         const el = document.getElementById('tl-step-info');
-        if (el) el.textContent = text + (step > 144 ? ' · resolução nativa de 6 h após 144 h' : '');
+        if (el) el.textContent = text;
         return { step, native };
     }
 
@@ -121,6 +122,11 @@ const Timeline = (function() {
         }, speedMs);
     }
 
+    function setRunBase(runBase) {
+        runBaseMs = runBase != null ? Date.parse(runBase) : null;
+        renderDatetime();
+    }
+
     function pause() {
         if (playTimer) clearInterval(playTimer);
         playTimer = null;
@@ -133,12 +139,12 @@ const Timeline = (function() {
 
     return {
         init, select, stepInfo, isNative,
-        stepToIndex, indexToStep,
+        stepToIndex, indexToStep, setRunBase,
         play, pause,
         HORIZON_STEPS,
         getTimezone: () => timezone
     };
 })();
 
-window.Timeline = Timeline;
+if (typeof window !== 'undefined') window.Timeline = Timeline;
 export default Timeline;

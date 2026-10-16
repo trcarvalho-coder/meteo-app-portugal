@@ -163,5 +163,7 @@ export const Helpers = {
     }
 };
 
-window.Config = Config;
-window.Helpers = Helpers;
+if (typeof window !== 'undefined') {
+    window.Config = Config;
+    window.Helpers = Helpers;
+}

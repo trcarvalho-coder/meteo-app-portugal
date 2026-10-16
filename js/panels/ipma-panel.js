@@ -1,5 +1,6 @@
 // ===== IPMA Autonomous Panel with Expand/Collapse =====
 import { Config, Helpers } from '../config.js';
+import { formatProbability } from '../format.js';
 
 const IPMAPanel = (function() {
     'use strict';
@@ -140,11 +141,15 @@ const IPMAPanel = (function() {
                 const dayData = forecastData[i];
                 if (!dayData) continue;
 
+                // precipitaProb é uma PROBABILIDADE (%) em STRING, não quantidade em mm
+                const probRaw = Number(dayData.precipitaProb);
                 forecast.push({
                     date: dayData.data ? new Date(dayData.data) : new Date(),
                     minTemp: dayData.tMin,
                     maxTemp: dayData.tMax,
-                    precipitation: dayData.precipitaProb,
+                    precipitationProbability: (dayData.precipitaProb != null && !Number.isNaN(probRaw) && probRaw !== -99)
+                        ? probRaw
+                        : null,
                     windSpeed: dayData.idVentoPred,
                     windDirection: dayData.ddVentoPred,
                     humidity: dayData.idRelativeHumid,
@@ -298,8 +303,8 @@ const IPMAPanel = (function() {
                     <span class="detail-value">${dayData.minTemp != null ? Math.round(dayData.minTemp) + '°C' : '--'}</span>
                 </div>
                 <div class="forecast-detail">
-                    <span class="detail-label">Precipitação:</span>
-                    <span class="detail-value">${dayData.precipitation != null ? dayData.precipitation.toFixed(1) + ' mm' : '0 mm'}</span>
+                    <span class="detail-label">Prob. de precipitação:</span>
+                    <span class="detail-value">${formatProbability(dayData.precipitationProbability)}</span>
                 </div>
                 <div class="forecast-detail">
                     <span class="detail-label">Vento:</span>

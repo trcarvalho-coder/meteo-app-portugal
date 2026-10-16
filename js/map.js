@@ -116,22 +116,11 @@ const MapModule = (function() {
         const clearBtn = document.getElementById('btn-clear-selection');
         if (clearBtn) clearBtn.style.display = 'inline-block';
 
-        if (typeof window.AppModule !== 'undefined') {
-            window.AppModule.updateWeatherData(lat, lng);
-        }
-
-        // Also update autonomous panels
-        if (typeof window.OpenMeteoPanel !== 'undefined') {
-            window.OpenMeteoPanel.updatePanel(lat, lng);
-        }
-        if (typeof window.IPMAPanel !== 'undefined') {
-            window.IPMAPanel.updatePanel(lat, lng);
-        }
+        // Fonte única de verdade: apenas LocationPanel.setLocation(); o callback
+        // setOnLocationChange (index.js) atualiza todos os painéis. Isto evita
+        // pedidos duplicados ao Open-Meteo (429) e ao IPMA em cada clique.
         if (typeof window.LocationPanel !== 'undefined') {
             window.LocationPanel.setLocation(lat, lng, 'Localização Selecionada');
-        }
-        if (typeof window.ERA5Panel !== 'undefined') {
-            window.ERA5Panel.setLocation(lat, lng);
         }
 
         Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
@@ -220,11 +209,18 @@ const MapModule = (function() {
                     }
                 },
                 (error) => {
-                    Helpers.showError('Erro ao obter localização', error);
+                    // aviso não bloqueante: timeout/negação de permissão não
+                    // deve interromper a aplicação
+                    const reason = error && error.code === 3
+                        ? 'A obtenção da localização demorou demasiado (timeout).'
+                        : (error && error.code === 1
+                            ? 'Permissão de localização negada pelo utilizador.'
+                            : 'Localização indisponível de momento.');
+                    Helpers.log(`⚠️ Geolocalização: ${reason}`);
                     const statusEl = document.getElementById('location-lat');
                     if (statusEl) statusEl.textContent = '--';
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
             );
         } else {
             alert('⚠️ Geolocalização não suportada pelo navegador');
@@ -283,7 +279,7 @@ const MapModule = (function() {
         const weatherIcon = Helpers.getWeatherIcon(weatherData.weatherCode);
         const weatherSymbol = new TextSymbol({
             text: weatherIcon,
-            font: { size: 24, family: 'emoji' },
+            font: { size: 24, family: 'sans-serif' },
             color: [255, 255, 255],
             haloColor: [52, 152, 219],
             haloSize: 2
@@ -335,7 +331,7 @@ const MapModule = (function() {
 
                 const alertSymbol = new TextSymbol({
                     text: alertIcon,
-                    font: { size: 20, family: 'emoji' },
+                    font: { size: 20, family: 'sans-serif' },
                     color: [255, 255, 255],
                     haloColor: Helpers.hexToRgb(alertColor),
                     haloSize: 2

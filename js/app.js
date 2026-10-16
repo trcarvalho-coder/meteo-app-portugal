@@ -25,10 +25,6 @@ const AppModule = (function() {
                     return;
                 }
             }
-            if (!mapResult) {
-                Helpers.showError('Falha ao inicializar mapa');
-                return;
-            }
 
             setupEventListeners();
             await loadAlerts();

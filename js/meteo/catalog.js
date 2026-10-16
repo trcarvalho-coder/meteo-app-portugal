@@ -42,12 +42,11 @@ export const SCALES = {
     }
 };
 
-// Produtos candidatos validados no bucket ecmwf-forecasts (AWS, eu-central-1)
-// em 2026-10-16, execução 20261016/00z, stream oper (IFS HRES 0.25°):
-// 2t (paramId 167), 10u (165), 10v (166), tp (228) disponíveis nos passos 3h
-// até 144h e 6h posteriormente, até 168h. Rajada a 10 m e extremos de
-// temperatura NÃO constam do subconjunto publicado no AWS (validado por
-// tentativa de obtenção e pela documentação do ecmwf-opendata).
+// Produtos candidatos validados no bucket ecmwf-forecasts (AWS, eu-central-1):
+// 2t (paramId 167), 10u (165), 10v (166), tp (228) disponíveis nos passos
+// 3 h até 72 h. Rajada a 10 m e extremos de temperatura NÃO constam do
+// subconjunto publicado no AWS (validado por tentativa de obtenção e pela
+// documentação do ecmwf-opendata).
 export const VARIABLE_CATALOG = {
     temperature: {
         displayName: 'Temperatura a 2 m',
@@ -60,7 +59,7 @@ export const VARIABLE_CATALOG = {
         height: '2 m above ground',
         temporalType: 'instantâneo',
         spatialResolution: '0.25°',
-        temporalResolution: '3 h até 144 h; 6 h até 168 h (validado por execução)',
+        temporalResolution: '3 h até 72 h (validado por execução)',
         transform: (v) => kelvinToCelsius(v),
         missingValueRule: 'null é apresentado como indisponível, nunca como 0',
         scale: SCALES.temperature
@@ -76,7 +75,7 @@ export const VARIABLE_CATALOG = {
         height: '10 m above ground',
         temporalType: 'instantâneo',
         spatialResolution: '0.25°',
-        temporalResolution: '3 h até 144 h; 6 h até 168 h',
+        temporalResolution: '3 h até 72 h',
         transform: (u, v) => windSpeedKmhFromComponents(u, v),
         missingValueRule: 'null é apresentado como indisponível, nunca como 0',
         scale: SCALES.wind
@@ -92,7 +91,7 @@ export const VARIABLE_CATALOG = {
         height: 'superfície (acumulado desde a execução)',
         temporalType: 'acumulado desde a execução; incremento por diferença entre passos',
         spatialResolution: '0.25°',
-        temporalResolution: '3 h até 144 h; 6 h até 168 h',
+        temporalResolution: '3 h até 72 h',
         transform: (v) => metersToMm(v),
         missingValueRule: 'null é apresentado como indisponível, nunca como 0',
         scale: SCALES.precipitation
