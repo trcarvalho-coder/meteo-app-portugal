@@ -1,0 +1,55 @@
+name: Precompute ECMWF
+
+# Pre-computa os campos ECMWF (execucao 00z/12z mais recente completa) e
+# publica JSON estatico em data/forecast/ servido pelo GitHub Pages.
+# O widget ECMWF do site publicado le estes JSON (sem backend em runtime).
+
+on:
+  schedule:
+    # 06:10 e 18:10 UTC: apos a publicacao das execucoes 00z/12z do ECMWF
+    - cron: "10 6,18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: precompute-ecmwf
+  cancel-in-progress: false
+
+jobs:
+  precompute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r backend/requirements.txt
+
+      - name: Cache de campos GRIB (acelera e mitiga rate-limit do S3)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/meteo-cache
+          key: ecmwf-cache-${{ github.run_id }}
+          restore-keys: ecmwf-cache-
+
+      - name: Pre-computar campos
+        env:
+          METEO_CACHE_DIR: /tmp/meteo-cache
+        run: python backend/precompute.py
+
+      # Mantem apenas a execucao atual e a anterior (limite ~1 GB do Pages)
+      - name: Limpar execucoes antigas
+        run: |
+          ls -1d data/forecast/*/ | sort | head -n -2 | xargs -r rm -rf
+
+      - name: Publicar dados no repositorio (servidos pelo Pages)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "data: campos ECMWF pre-computados (auto)"
+          file_pattern: data/forecast/*.json data/forecast/**/*.json
