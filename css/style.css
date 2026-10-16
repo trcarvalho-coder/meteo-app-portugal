@@ -532,3 +532,19 @@ input[type="range"] { width: 100%; accent-color: var(--c-cyan); }
         width: auto; max-height: 40vh;
     }
 }
+
+/* ===== Tooltip hover avisos IPMA ===== */
+.ipma-hover-tooltip {
+    position: absolute;
+    z-index: 130;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-s);
+    box-shadow: var(--shadow-s);
+    padding: 8px 12px;
+    font-size: var(--fs-xs);
+    color: var(--c-text);
+    pointer-events: none;
+    max-width: 260px;
+    line-height: 1.5;
+}

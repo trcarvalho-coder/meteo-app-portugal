@@ -135,8 +135,7 @@ const ECMWFPanel = (function() {
                     opacity: parseInt(els().opacity?.value || '70', 10) / 100
                 });
                 renderLegend(field);
-                attachPopupSampling(view);
-            }
+                    }
         } catch (err) {
             if (err.name === 'AbortError') return;
             e.loading?.setAttribute('hidden', '');
@@ -169,35 +168,6 @@ const ECMWFPanel = (function() {
             `Passo ${field.nativeStep ? 'nativo' : 'interpolado/indisponível'}`;
     }
 
-    function attachPopupSampling(view) {
-        // consulta pontual: valor da célula nativa mais próxima (sem pedidos por pixel)
-        view.on('click', (event) => {
-            if (!activeField) return;
-            const { lats, lons, values } = activeField;
-            const lat = event.mapPoint.latitude;
-            const lon = event.mapPoint.longitude;
-            let bi = 0, bj = 0, best = Infinity;
-            for (let i = 0; i < lats.length; i++) {
-                for (let j = 0; j < lons.length; j++) {
-                    const d = (lats[i] - lat) ** 2 + (lons[j] - lon) ** 2;
-                    if (d < best) { best = d; bi = i; bj = j; }
-                }
-            }
-            const value = values[bi][bj];
-            const meta = VARIABLE_CATALOG[currentVariable];
-            view.popup.open({
-                title: `${meta.displayName}`,
-                location: event.mapPoint,
-                content: value != null
-                    ? `<b>${value} ${activeField.unit}</b><br>` +
-                      `Período: ${activeField.temporalType}<br>` +
-                      `Fonte: ${activeField.source}<br>` +
-                      `Execução: ${activeField.run} · Validade: ${activeField.validTimeUtc} (UTC)<br>` +
-                      `Célula nativa 0.25° (sem interpolação espacial)`
-                    : `<b>Indisponível nesta fonte</b>`
-            });
-        });
-    }
 
     function showError(err) {
         const e = els();
@@ -220,7 +190,20 @@ const ECMWFPanel = (function() {
         if (activeField) renderLegend(activeField);
     }
 
-    return { init, loadStep };
+    function sampleAtPoint(lat, lon) {
+        if (!activeField) return null;
+        const { lats, lons, values } = activeField;
+        let bi = 0, bj = 0, best = Infinity;
+        for (let i = 0; i < lats.length; i++) {
+            for (let j = 0; j < lons.length; j++) {
+                const d = (lats[i] - lat) ** 2 + (lons[j] - lon) ** 2;
+                if (d < best) { best = d; bi = i; bj = j; }
+            }
+        }
+        return { value: values[bi][bj], meta: VARIABLE_CATALOG[currentVariable], field: activeField };
+    }
+
+    return { init, loadStep, sampleAtPoint };
 })();
 
 window.ECMWFPanel = ECMWFPanel;

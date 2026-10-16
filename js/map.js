@@ -373,6 +373,7 @@ const MapModule = (function() {
         init,
         changeBasemap,
         getCurrentLocation,
+        isSelectionMode: () => mapSelectionMode,
         addLocationMarker,
         addWeatherData,
         addAlertsToMap,

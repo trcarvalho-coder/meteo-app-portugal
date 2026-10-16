@@ -13,6 +13,7 @@ const LEVEL_NAMES = { 1: 'Amarelo', 2: 'Laranja', 3: 'Vermelho' };
 
 let warningsLayer = null;
 let stationsLayer = null;
+let mapView = null;
 let areasGeo = null;
 let state = {
     warnings: [],
@@ -30,7 +31,8 @@ async function loadAreasGeometry() {
     return areasGeo;
 }
 
-async function init(map) {
+async function init(map, view) {
+    mapView = view || null;
     if (!warningsLayer) {
         warningsLayer = new arcgis.GraphicsLayer({ title: 'Avisos IPMA', visible: true });
         stationsLayer = new arcgis.GraphicsLayer({ title: 'Estacoes IPMA', visible: true });
@@ -100,23 +102,32 @@ async function renderWarnings(now = new Date()) {
     if (unmatched.length) console.warn('[IPMA] areas sem geometria:', [...new Set(unmatched)]);
 }
 
-function stationSymbol(station, obs) {
-    // simbologia apenas com dados reais: temperatura e/ou vento
+function stationMarker(obs) {
+    // simbologia apenas com dados reais; tres estados visiveis
     const hasRecent = obs && !obs.staleObs;
-    if (hasRecent && obs.temperature != null) {
-        const t = Math.round(obs.temperature);
+    if (hasRecent) {
         return {
-            type: 'simple-marker', style: 'circle', size: 14,
-            color: [23, 98, 127, 0.9], outline: { color: [255, 255, 255, 1], width: 1.2 },
-            text: null,
-            label: { type: 'text', text: String(t), color: 'white', font: { size: 10, weight: 'bold' }, yoffset: 0 }
+            type: 'simple-marker', style: 'circle', size: 13,
+            color: [23, 98, 127, 0.92],
+            outline: { color: [255, 255, 255, 1], width: 1.3 }
         };
     }
     const outdated = obs && obs.staleObs;
     return {
         type: 'simple-marker', style: 'circle', size: outdated ? 8 : 10,
-        color: outdated ? [170, 150, 90, 0.8] : [140, 160, 175, 0.55],
+        color: outdated ? [200, 160, 60, 0.85] : [150, 165, 180, 0.6],
         outline: { color: [70, 90, 105, 0.9], width: 1 }
+    };
+}
+
+function stationTextSymbol(obs) {
+    if (!obs || obs.staleObs || obs.temperature == null) return null;
+    return {
+        type: 'text',
+        text: String(Math.round(obs.temperature)),
+        color: 'white',
+        font: { size: 10, weight: 'bold' },
+        yoffset: 0
     };
 }
 
@@ -125,13 +136,21 @@ function renderStations() {
     stationsLayer.removeAll();
     for (const s of state.stations) {
         const obs = state.byStation.get(s.id) || null;
-        const sym = stationSymbol(s, obs);
-        const graphic = new arcgis.Graphic({
-            geometry: { type: 'point', longitude: s.lng, latitude: s.lat, spatialReference: { wkid: 4326 } },
-            symbol: sym,
-            attributes: { stationId: s.id, stationName: s.name, ...obs }
+        const geometry = { type: 'point', longitude: s.lng, latitude: s.lat, spatialReference: { wkid: 4326 } };
+        const marker = new arcgis.Graphic({
+            geometry,
+            symbol: stationMarker(obs),
+            attributes: { stationId: s.id, stationName: s.name, kind: 'station' }
         });
-        stationsLayer.add(graphic);
+        stationsLayer.add(marker);
+        const textSym = stationTextSymbol(obs);
+        if (textSym) {
+            stationsLayer.add(new arcgis.Graphic({
+                geometry,
+                symbol: textSym,
+                attributes: { stationId: s.id, kind: 'station-label' }
+            }));
+        }
     }
 }
 
@@ -157,3 +176,42 @@ export default {
     warningsForPoint, getState,
     LEVEL_NAMES
 };
+
+
+// ===== Tooltip de hover nos avisos (area, fenomeno, nivel) =====
+let hoverThrottle = 0;
+export function attachWarningsHover(view) {
+    mapView = view;
+    view.on('pointer-move', async (event) => {
+        const now = Date.now();
+        if (now - hoverThrottle < 150) return; // throttle
+        hoverThrottle = now;
+        try {
+            const hit = await view.hitTest(event);
+            const g = hit.results.map(r => r.graphic).find(x => x && x.attributes && x.attributes.areaId);
+            const tooltip = document.getElementById('ipma-hover-tooltip');
+            if (!tooltip) return;
+            if (g) {
+                const areaId = g.attributes.areaId;
+                const areaName = g.attributes.areaName;
+                const active = state.warnings.filter(w => w.areaId === areaId && w.active);
+                const future = state.warnings.filter(w => w.areaId === areaId && !w.active);
+                let html = '<strong>' + areaName + ' (' + areaId + ')</strong>';
+                if (active.length) {
+                    html += active.map(w => '<div>&#9679; ' + w.phenomenon + ' — ' + LEVEL_NAMES[w.level] + '</div>').join('');
+                } else {
+                    html += '<div>Sem avisas em vigor</div>';
+                }
+                if (future.length) {
+                    html += '<div style="opacity:.7">' + future.length + ' previsto(s)</div>';
+                }
+                tooltip.innerHTML = html;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.x + 14) + 'px';
+                tooltip.style.top = (event.y + 14) + 'px';
+            } else {
+                tooltip.style.display = 'none';
+            }
+        } catch (_) { /* sem hit */ }
+    });
+}

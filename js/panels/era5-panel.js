@@ -33,20 +33,22 @@ const ERA5Panel = (function() {
 
         e.searchBtn?.addEventListener('click', load);
         e.retry?.addEventListener('click', load);
+        if (currentLocation) load(); // localizacao definida antes do painel abrir
     }
 
     function toISO(d) {
         return d.toISOString().slice(0, 10);
     }
 
-    function setLocation(lat, lng) {
-        currentLocation = { lat, lng };
+    function setLocation(lat, lng, name) {
+        currentLocation = { lat, lng, name: name || null };
         load();
     }
 
     async function load() {
         const e = els();
         if (!currentLocation) return;
+        if (!e.startDate && !e.variable && !e.results && !e.hourly) return; // painel ainda nao aberto
         const startDate = e.startDate?.value;
         const endDate = e.endDate?.value;
         if (!startDate || !endDate) return;

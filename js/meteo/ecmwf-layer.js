@@ -67,7 +67,7 @@ function renderField(map, field, metadata) {
         }
     }
 
-    activeRenderer = { field, metadata };
+    activeRenderer = { field, metadata, map };
     return layer;
 }
 
@@ -77,10 +77,10 @@ function clear() {
 }
 
 function setActiveOpacity(opacity) {
-    if (!activeRenderer || !gridLayer) return;
-    const { field, metadata } = activeRenderer;
-    const map = gridLayer.get('map') ?? null;
-    if (map) renderField(map, field, { ...metadata, opacity });
+    // re-renderizar com a opacidade nova; guardamos map aquando do renderField
+    if (!activeRenderer || !activeRenderer.map) return;
+    const { field, metadata, map } = activeRenderer;
+    renderField(map, field, { ...metadata, opacity });
 }
 
 function getActive() {
