@@ -389,15 +389,17 @@ const OpenMeteoPanel = (function() {
             elements.toggleBtn.addEventListener('click', togglePanel);
         }
         
-        // Initialize panel state
-        if (isExpanded) {
-            elements.panel.classList.add('expanded');
-            elements.content.style.display = 'block';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-        } else {
-            elements.panel.classList.add('collapsed');
-            elements.content.style.display = 'none';
-            elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        // Initialize panel state (só se todos os elementos existirem)
+        if (elements.panel && elements.content && elements.toggleBtn) {
+            if (isExpanded) {
+                elements.panel.classList.add('expanded');
+                elements.content.style.display = 'block';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            } else {
+                elements.panel.classList.add('collapsed');
+                elements.content.style.display = 'none';
+                elements.toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            }
         }
     }
 
