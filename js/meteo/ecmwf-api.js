@@ -2,7 +2,10 @@
 // Consome o backend local (backend/server.py) que processa GRIB2 do bucket
 // s3://ecmwf-forecasts. O browser nunca descarrega ficheiros GRIB.
 
-const BACKEND_URL = 'http://127.0.0.1:8787';
+// URL do backend configurável: variável global window.ECMWF_BACKEND_URL
+// (definida no index.html ou por script próprio) com fallback para loopback.
+const BACKEND_URL = (typeof window !== 'undefined' && window.ECMWF_BACKEND_URL)
+    || 'http://127.0.0.1:8787';
 
 let cachedRun = null;
 const fieldCache = new Map(); // key: variable-step -> { data, timestamp }
