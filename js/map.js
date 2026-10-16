@@ -124,6 +124,9 @@ const MapModule = (function() {
         if (typeof window.LocationPanel !== 'undefined') {
             window.LocationPanel.setLocation(lat, lng, 'Localização Selecionada');
         }
+        if (typeof window.ERA5Panel !== 'undefined') {
+            window.ERA5Panel.setLocation(lat, lng);
+        }
 
         Helpers.log(`✅ Coordenadas selecionadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         
