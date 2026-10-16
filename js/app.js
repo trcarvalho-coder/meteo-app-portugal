@@ -6,7 +6,6 @@ import { Config, Helpers } from './config.js';
 import MapModule from './map.js';
 import IPMAModule from './ipma-api.js';
 import OpenMeteoModule from './openmeteo-api.js';
-import Widgets from './widgets.js';
 
 const AppModule = (function() {
     'use strict';
@@ -24,7 +23,6 @@ const AppModule = (function() {
                 return;
             }
 
-            Widgets.init();
             setupEventListeners();
             await loadAlerts();
             startPeriodicUpdates();
@@ -47,7 +45,7 @@ const AppModule = (function() {
             if (alerts) {
                 window.MapModule.addAlertsToMap(alerts);
                 const activeAlerts = alerts.filter(a => a.level >= 2).length;
-                const badgeEl = document.getElementById('alerts-badge');
+                const badgeEl = document.getElementById('rail-alerts-badge');
                 if (badgeEl) {
                     badgeEl.textContent = activeAlerts > 0 ? activeAlerts : '';
                     if (activeAlerts > 0) badgeEl.removeAttribute('hidden');

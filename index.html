@@ -28,18 +28,47 @@
         <!-- Mapa principal -->
         <div id="map-view" class="windy-map" role="application" aria-label="Mapa meteorológico de Portugal"></div>
 
-        <!-- ===== WIDGETS DA DIREITA (comportamento de botão expansível) ===== -->
-        <div class="autonomous-panels-container" id="widgets-container">
+        <!-- ===== RAIL DE BOTÕES COMPACTOS (direita) ===== -->
+        <nav class="widget-rail" id="widget-rail" aria-label="Painéis">
+            <button class="rail-btn" data-panel="openmeteo" aria-expanded="false" aria-controls="floating-panel" title="Estado atual (Open-Meteo)">
+                <i class="fas fa-temperature-half" aria-hidden="true"></i><span>Atual</span>
+            </button>
+            <button class="rail-btn" data-panel="omforecast" aria-expanded="false" aria-controls="floating-panel" title="Previsão Open-Meteo">
+                <i class="fas fa-cloud-sun-rain" aria-hidden="true"></i><span>Previsão OM</span>
+            </button>
+            <button class="rail-btn" data-panel="ecmwf" aria-expanded="false" aria-controls="floating-panel" title="Previsão ECMWF 7 dias">
+                <i class="fas fa-satellite-dish" aria-hidden="true"></i><span>ECMWF</span>
+            </button>
+            <button class="rail-btn" data-panel="ipma" aria-expanded="false" aria-controls="floating-panel" title="Avisos IPMA">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>Avisos</span>
+                <span id="rail-alerts-badge" class="badge" hidden>0</span>
+            </button>
+            <button class="rail-btn" data-panel="stations" aria-expanded="false" aria-controls="floating-panel" title="Estações IPMA">
+                <i class="fas fa-tower-observation" aria-hidden="true"></i><span>Estações</span>
+            </button>
+            <button class="rail-btn" data-panel="era5" aria-expanded="false" aria-controls="floating-panel" title="ERA5 — Histórico">
+                <i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>ERA5</span>
+            </button>
+            <button class="rail-btn" data-panel="location" aria-expanded="false" aria-controls="floating-panel" title="Localização">
+                <i class="fas fa-location-dot" aria-hidden="true"></i><span>Local</span>
+            </button>
+            <div class="rail-sep" role="separator"></div>
+            <button class="rail-btn" id="rail-toggle-warnings" title="Mostrar/ocultar camada Avisos IPMA" aria-pressed="true">
+                <i class="fas fa-layer-group" aria-hidden="true"></i><span>Avisos ON</span>
+            </button>
+            <button class="rail-btn" id="rail-toggle-stations" title="Mostrar/ocultar camada Estações IPMA" aria-pressed="true">
+                <i class="fas fa-diagram-project" aria-hidden="true"></i><span>Estações ON</span>
+            </button>
+        </nav>
+
+        <!-- ===== PAINEL FLUTUANTE ÚNICO (aberto pelo rail) ===== -->
+        <div class="floating-panel" id="floating-panel" hidden></div>
+
+        <!-- Conteúdo dos painéis (movido para templates) -->
+        <div hidden id="panel-templates">
 
             <!-- Widget: Condições Atuais (Open-Meteo) -->
-            <section id="openmeteo-panel" class="widget" data-widget="openmeteo">
-                <h2 class="widget-heading">
-                    <button id="openmeteo-panel-toggle" class="widget-toggle" aria-expanded="true"
-                        aria-controls="openmeteo-panel-content" title="Abrir/fechar widget Open-Meteo">
-                        <span class="widget-title"><i class="fas fa-cloud-sun" aria-hidden="true"></i> Atual (Open-Meteo)</span>
-                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
-                    </button>
-                </h2>
+            <template id="tpl-openmeteo"><div id="openmeteo-panel" class="widget-body">
                 <div id="openmeteo-panel-content" class="widget-content">
                     <div id="openmeteo-loading" class="loading-spinner" hidden>
                         <div class="spinner" role="status" aria-label="A carregar"></div>
@@ -60,17 +89,10 @@
                         <div id="openmeteo-daily-7-data" class="daily-scroll"></div>
                     </div>
                 </div>
-            </section>
+            </div></template>
 
             <!-- Widget: ECMWF — Previsão 7 dias -->
-            <section id="ecmwf-panel" class="widget" data-widget="ecmwf">
-                <h2 class="widget-heading">
-                    <button id="ecmwf-panel-toggle" class="widget-toggle" aria-expanded="true"
-                        aria-controls="ecmwf-panel-content" title="Abrir/fechar widget ECMWF">
-                        <span class="widget-title"><i class="fas fa-satellite-dish" aria-hidden="true"></i> ECMWF — Previsão 7 dias</span>
-                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
-                    </button>
-                </h2>
+            <template id="tpl-ecmwf"><div id="ecmwf-panel" class="widget-body">
                 <div id="ecmwf-panel-content" class="widget-content">
                     <div id="ecmwf-loading" class="loading-spinner" hidden>
                         <div class="spinner" role="status" aria-label="A carregar"></div>
@@ -99,17 +121,10 @@
                             aria-label="Opacidade da camada no mapa">
                     </div>
                 </div>
-            </section>
+            </div></template>
 
             <!-- Widget: ERA5 — Histórico (integração pendente) -->
-            <section id="era5-panel" class="widget" data-widget="era5">
-                <h2 class="widget-heading">
-                    <button id="era5-panel-toggle" class="widget-toggle" aria-expanded="true"
-                        aria-controls="era5-panel-content" title="Abrir/fechar widget ERA5">
-                        <span class="widget-title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> ERA5 — Histórico</span>
-                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
-                    </button>
-                </h2>
+            <template id="tpl-era5"><div id="era5-panel" class="widget-body">
                 <div id="era5-panel-content" class="widget-content">
                     <div class="widget-meta" id="era5-source" aria-live="polite">
                         Open-Meteo Historical API — ERA5 (reanálise, 0.25°, desde 1940).
@@ -137,18 +152,10 @@
                     </div>
                     <div id="era5-results" class="widget-section" aria-live="polite"></div>
                 </div>
-            </section>
+            </div></template>
 
             <!-- Widget: Alertas IPMA -->
-            <section id="ipma-panel" class="widget" data-widget="ipma">
-                <h2 class="widget-heading">
-                    <button id="ipma-panel-toggle" class="widget-toggle" aria-expanded="true"
-                        aria-controls="ipma-panel-content" title="Abrir/fechar widget IPMA">
-                        <span class="widget-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Alertas IPMA</span>
-                        <span id="alerts-badge" class="badge" hidden>0</span>
-                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
-                    </button>
-                </h2>
+            <template id="tpl-ipma"><div id="ipma-panel" class="widget-body">
                 <div id="ipma-panel-content" class="widget-content">
                     <div id="ipma-loading" class="loading-spinner" hidden>
                         <div class="spinner" role="status" aria-label="A carregar"></div>
@@ -173,17 +180,51 @@
                         <div id="ipma-forecast-data" class="daily-scroll"></div>
                     </div>
                 </div>
-            </section>
+            </div></template>
 
             <!-- Widget: Localização -->
-            <section id="location-panel" class="widget" data-widget="location">
-                <h2 class="widget-heading">
-                    <button id="location-panel-toggle" class="widget-toggle" aria-expanded="true"
-                        aria-controls="location-panel-content" title="Abrir/fechar widget Localização">
-                        <span class="widget-title"><i class="fas fa-location-dot" aria-hidden="true"></i> Localização</span>
-                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
-                    </button>
-                </h2>
+            <template id="tpl-omforecast"><div id="omforecast-panel" class="widget-body">
+                    <p id="omf-location" class="widget-meta" aria-live="polite">--</p>
+                    <p id="omf-updated" class="widget-meta">Fonte: Open-Meteo (previsão — não é observação)</p>
+                    <div class="widget-section">
+                        <label for="omf-variable">Variável</label>
+                        <select id="omf-variable" class="form-select" aria-label="Variável da previsão">
+                            <option value="temperature" selected>Temperatura (°C)</option>
+                            <option value="wind">Vento e rajadas (km/h)</option>
+                            <option value="precipitation">Precipitação (mm / prob.)</option>
+                        </select>
+                    </div>
+                    <div id="omf-loading" class="loading-spinner" hidden>
+                        <div class="spinner" role="status" aria-label="A carregar"></div>
+                        <p>A carregar previsão Open-Meteo…</p>
+                    </div>
+                    <div id="omf-error" class="widget-error" hidden>
+                        <p id="omf-error-message" role="alert"></p>
+                        <button id="omf-retry" class="btn-retry"><i class="fas fa-rotate-right" aria-hidden="true"></i> Tentar novamente</button>
+                    </div>
+                    <div class="widget-section">
+                        <h3>Próximas horas</h3>
+                        <div id="omf-hourly-table"></div>
+                    </div>
+                    <div class="widget-section">
+                        <h3>7 dias</h3>
+                        <div id="omf-daily-table"></div>
+                    </div>
+                </div></template>
+                        <template id="tpl-stations"><div id="stations-panel" class="widget-body">
+                    <p class="widget-meta">Catálogo público de estações meteorológicas do IPMA (continente, Madeira e Açores), com a última observação válida disponível. A simbologia usa apenas dados reais: temperatura e/ou vento observados; sem ícones de estado do tempo inventados.</p>
+                    <div class="widget-section">
+                        <h3>Legenda</h3>
+                        <div class="ipma-pop-row"><span>● azul com valor</span><strong>temperatura observada (°C)</strong></div>
+                        <div class="ipma-pop-row"><span>● cinzento</span><strong>sem dados recentes</strong></div>
+                        <div class="ipma-pop-row"><span>● âmbar</span><strong>dados desatualizados</strong></div>
+                    </div>
+                    <div class="widget-section">
+                        <h3>Estado</h3>
+                        <p id="stations-status" class="widget-meta" aria-live="polite">A carregar…</p>
+                    </div>
+                </div></template>
+            <template id="tpl-location"><div id="location-panel" class="widget-body">
                 <div id="location-panel-content" class="widget-content">
                     <div class="location-search-row">
                         <label class="visually-hidden" for="location-search-input">Pesquisar cidade ou coordenadas</label>
@@ -209,7 +250,7 @@
                         </button>
                     </div>
                 </div>
-            </section>
+            </div></template>
         </div>
 
         <!-- ===== LINHA TEMPORAL TRI-HORÁRIA (previsão) ===== -->
