@@ -104,6 +104,7 @@ def test_increment_negative_difference_is_none():
     assert d < -tol
 
 
+@pytest.mark.network
 def test_run_discovery_returns_recent_first():
     runs = a.discover_runs()
     assert len(runs) >= 1
