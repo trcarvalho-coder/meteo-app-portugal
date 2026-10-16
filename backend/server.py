@@ -1,17 +1,20 @@
-"""Servidor HTTP do backend meteorológico (loopback apenas).
+"""Servidor HTTP do backend meteorológico.
 
 Endpoints:
+- GET /api/health         -> estado do serviço
 - GET /api/run            -> execução selecionada
 - GET /api/field?variable=&step=  -> campo normalizado (JSON)
 - GET /api/precip-increment?step= -> incremento de precipitação
 - GET /api/steps          -> passos nativos e cobertura real
 
-Executar: python backend/server.py  (liga em 127.0.0.1:8787)
+Desenvolvimento: python backend/server.py  (liga em 127.0.0.1:8787)
+Produção: configurar HOST/PORT/ALLOWED_ORIGIN por variáveis de ambiente.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -21,21 +24,27 @@ sys.path.insert(0, ".")
 import ecmwf_adapter as adapter  # noqa: E402
 
 
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")  # em produção, o domínio do site
+
+
 class Handler(BaseHTTPRequestHandler):
     def _json(self, payload, status=200):
         body = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self):  # noqa: N802
         parsed = urlparse(self.path)
-        query = {k: v[0] for k, v in parse_qs(self.qs if hasattr(self, "qs") else parsed.query).items()}
+        query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
         try:
-            if parsed.path == "/api/run":
+            if parsed.path == "/api/health":
+                self._json({"status": "ok"})
+
+            elif parsed.path == "/api/run":
                 run = adapter.select_run()
                 if not run:
                     self._json({"error": "Nenhuma execução completa disponível"}, 503)
@@ -77,8 +86,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    server = ThreadingHTTPServer(("127.0.0.1", 8787), Handler)
-    print("Backend meteo em http://127.0.0.1:8787 (loopback)")
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8787"))
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f"Backend meteo em http://{host}:{port} (origem permitida: {ALLOWED_ORIGIN})")
     server.serve_forever()
 
 
