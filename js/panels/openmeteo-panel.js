@@ -53,7 +53,10 @@ const OpenMeteoPanel = (function() {
             latitude: latitude,
             longitude: longitude,
             current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index,cloud_cover',
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData('/forecast', params, 0);
@@ -97,7 +100,10 @@ const OpenMeteoPanel = (function() {
             longitude: longitude,
             hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
             forecast_hours: 24,
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData('/forecast', params, 0);
@@ -139,7 +145,10 @@ const OpenMeteoPanel = (function() {
             longitude: longitude,
             forecast_days: days,
             daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData('/forecast', params, 0);
@@ -206,12 +215,12 @@ const OpenMeteoPanel = (function() {
 
     function formatWindSpeed(value) {
         if (value === null || value === undefined) return '-- km/h';
-        return `${Math.round(value * 3.6)} km/h`;
+        return `${Math.round(value)} km/h`;
     }
 
     function formatWindGust(value) {
         if (value === null || value === undefined) return '-- km/h';
-        return `${Math.round(value * 3.6)} km/h`;
+        return `${Math.round(value)} km/h`;
     }
 
     function formatWindDirection(value) {
