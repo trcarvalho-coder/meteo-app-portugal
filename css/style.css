@@ -418,3 +418,14 @@ input[type="range"] { width: 100%; accent-color: var(--c-cyan); }
     .timeline-panel { bottom: 8px; padding: var(--sp-2); }
     .widget-content { max-height: 34vh; }
 }
+
+/* ===== ERA5 Historico ===== */
+.era5-date-row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.era5-date-row label { font-size: var(--fs-xs); color: var(--c-text-dim); }
+.era5-date-input {
+    padding: var(--sp-2); border: 1px solid var(--c-border); border-radius: var(--radius-s);
+    background: rgba(11, 37, 69, 0.6); color: var(--c-text); font: inherit; font-size: var(--fs-xs);
+    color-scheme: dark;
+}
+.era5-minmax { display: flex; justify-content: space-between; margin: var(--sp-1) 0; }
+.era5-detail { font-size: var(--fs-xs); color: var(--c-text-dim); margin-top: 2px; }

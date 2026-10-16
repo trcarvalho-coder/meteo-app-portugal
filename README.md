@@ -40,7 +40,7 @@ python -m pytest tests/ -q    # pytest (recorte, passos, validade, incrementos)
 | Previsão 7 dias (camadas) | ECMWF Open Data — AWS `s3://ecmwf-forecasts` (eu-central-1), IFS HRES oper 0.25°, CC-BY-4.0 | "ECMWF Open Data (AWS)" |
 | Atual + rajadas | Open-Meteo (fonte secundária identificada; rajadas indisponíveis no subconjunto AWS) | "Open-Meteo" |
 | Alertas | IPMA open-data | "IPMA" |
-| Histórico | ARCO-ERA5 (BigQuery) — **integração pendente** | "ERA5 — Histórico" |
+| Histórico | Open-Meteo Historical API — ERA5 (reanálise 0.25°, desde 1940). Fonte interina identificada; ARCO-ERA5/BigQuery pendente | "ERA5 — Histórico" |
 
 ## Mapeamento de variáveis (validado na fonte em 2026-10-16, execução 20261016/00z)
 
@@ -74,7 +74,7 @@ python -m pytest tests/ -q    # pytest (recorte, passos, validade, incrementos)
 
 - **Implementado e validado**: auditoria/correção Open-Meteo (30 testes JS), remoção do painel esquerdo, widgets expansíveis acessíveis (`aria-expanded`, teclado, foco visível), backend ECMWF AWS (14 testes Python; downloads e decodificação reais validados: 2t Lisboa 22,0 °C; vento máx 50,4 km/h na área; incremento 0–3 h até 10,16 mm), linha temporal tri-horária 57 instantes/168 h, legendas por variável com fontes/execuções/validades, atribuições e licenças.
 - **Implementado mas não validado no ambiente disponível**: renderização das camadas no mapa ArcGIS e pop-ups (requer browser; o SDK ArcGIS e o backend não são executáveis no sandbox de CI).
-- **Pendente por dependência externa**: ERA5/ARCO-ERA5 — exige projeto Google Cloud com BigQuery ativo e autenticação; widget em estado explícito de integração pendente, sem dados simulados.
+- **Implementado (fonte interina)**: ERA5 histórico via Open-Meteo Historical API (reanálise ERA5, 0.25°, 1940→), com seleção de período, fonte identificada e contexto temporal independente. **Pendente**: ARCO-ERA5/BigQuery (exige projeto GCP com faturação ativa) — quando disponível, substitui a fonte interina.
 - **Não suportado pela fonte**: rajada a 10 m no subconjunto AWS (usar fallback Open-Meteo identificado); extremos nativos mn2t/mx2t no AWS.
 
 ## Limitações conhecidas

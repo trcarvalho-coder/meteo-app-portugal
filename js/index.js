@@ -9,6 +9,7 @@ import LocationPanel from './panels/location-panel.js';
 import OpenMeteoPanel from './panels/openmeteo-panel.js';
 import IPMAPanel from './panels/ipma-panel.js';
 import ECMWFPanel from './panels/ecmwf-panel.js';
+import ERA5Panel from './panels/era5-panel.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     window.MapModule = MapModule;
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     LocationPanel.init(MapModule);
     OpenMeteoPanel.init();
     IPMAPanel.init();
+    ERA5Panel.init();
     if (mapResult) {
         ECMWFPanel.init(mapResult.map);
     }
@@ -27,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!location) return;
         OpenMeteoPanel.updatePanel(location.lat, location.lng);
         IPMAPanel.updatePanel(location.lat, location.lng);
+        ERA5Panel.setLocation(location.lat, location.lng);
         if (MapModule.isInitialized()) {
             MapModule.centerOnCoordinates(location.lng, location.lat, 12);
             MapModule.addLocationMarker(location.lng, location.lat, location.name || 'Localização');
