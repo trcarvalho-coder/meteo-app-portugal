@@ -429,3 +429,106 @@ input[type="range"] { width: 100%; accent-color: var(--c-cyan); }
 }
 .era5-minmax { display: flex; justify-content: space-between; margin: var(--sp-1) 0; }
 .era5-detail { font-size: var(--fs-xs); color: var(--c-text-dim); margin-top: 2px; }
+
+/* ===== Rail de botoes compactos (direita) ===== */
+.widget-rail {
+    position: absolute;
+    top: 50%;
+    right: var(--sp-3);
+    transform: translateY(-50%);
+    z-index: var(--z-widget);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.rail-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 64px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    background: transparent;
+    color: var(--c-text-dim);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative;
+}
+.rail-btn i { font-size: 1.05rem; }
+.rail-btn:hover { background: var(--c-surface-2); color: var(--c-text); }
+.rail-btn.active { background: var(--c-cyan); color: var(--c-deep); font-weight: 700; }
+.rail-btn .badge { position: absolute; top: 4px; right: 6px; }
+.rail-sep { height: 1px; background: var(--c-border); margin: 4px 0; }
+
+/* ===== Painel flutuante unico ===== */
+.floating-panel {
+    position: absolute;
+    top: var(--sp-4);
+    right: 110px;
+    z-index: var(--z-widget);
+    width: min(400px, calc(100vw - 130px));
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: var(--sp-4);
+    outline: none;
+}
+.widget-body > .widget-section:first-child { margin-top: 0; }
+
+/* ===== Pop-up IPMA (secções) ===== */
+.ipma-pop-section { margin-bottom: 14px; }
+.ipma-pop-section h4 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    color: #0b2545;
+    border-bottom: 2px solid #35c4dd;
+    padding-bottom: 3px;
+}
+.ipma-pop-meta { font-size: 0.85rem; color: #444; margin: 3px 0; }
+.ipma-pop-na { font-size: 0.85rem; color: #a33; margin: 6px 0; font-style: italic; }
+.ipma-pop-stale { font-size: 0.8rem; color: #b45309; margin: 4px 0; }
+.ipma-pop-obs .ipma-pop-row, .ipma-pop-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.85rem; padding: 3px 0;
+    border-bottom: 1px dotted #ccc;
+}
+.ipma-pop-days { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.ipma-pop-day {
+    display: grid; grid-template-columns: 52px 62px 1fr 1fr; gap: 8px;
+    font-size: 0.82rem; align-items: center;
+    background: #f0f5fa; border-radius: 6px; padding: 4px 8px;
+}
+.ipma-pop-warning { background: #fff8e1; border-left: 4px solid #ffc800; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.85rem; }
+.ipma-pop-warning.level-2 { background: #ffeacc; border-left-color: #ff8c00; }
+.ipma-pop-warning.level-3 { background: #ffe0e0; border-left-color: #dc2828; }
+.ipma-pop-wtext { font-size: 0.82rem; color: #333; margin-top: 4px; }
+.ipma-pop-src { font-size: 0.75rem; color: #888; margin: 6px 0 0; }
+.ipma-pop-label { font-size: 0.8rem; color: #555; font-style: italic; margin: 6px 0; }
+.hourly-detail { font-size: 0.78rem; color: var(--c-text); margin-top: 2px; }
+.omf-desc { color: var(--c-text-dim); }
+
+/* mobile: rail compacto + painel inferior */
+@media (max-width: 640px) {
+    .widget-rail {
+        top: auto; bottom: 120px; right: var(--sp-2);
+        transform: none;
+        flex-direction: row; flex-wrap: wrap; max-width: calc(100vw - 16px);
+    }
+    .rail-btn { min-width: 54px; padding: 6px; font-size: 0.62rem; }
+    .floating-panel {
+        top: auto; bottom: 190px; right: var(--sp-2); left: var(--sp-2);
+        width: auto; max-height: 40vh;
+    }
+}
