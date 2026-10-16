@@ -58,14 +58,22 @@ const Rail = (function() {
         open(name);
     }
 
+    const mounted = new Map(); // name -> elemento montado (uma unica vez)
+
     function open(name) {
         const panel = document.getElementById('floating-panel');
         const tpl = document.getElementById('tpl-' + name);
         if (!panel || !tpl) return;
 
-        // limpar e montar o painel a partir do template
+        // montar uma unica vez; aberturas seguintes apenas mostram o no ja existente
+        // (preserva inputs, selecoes e estado entre aberturas/fechos)
+        let el = mounted.get(name);
+        if (!el) {
+            el = tpl.content.firstElementChild.cloneNode(true);
+            mounted.set(name, el);
+        }
         panel.innerHTML = '';
-        panel.appendChild(tpl.content.cloneNode(true));
+        panel.appendChild(el);
         panel.hidden = false;
 
         // marcar botao ativo

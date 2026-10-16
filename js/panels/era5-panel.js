@@ -52,6 +52,11 @@ const ERA5Panel = (function() {
         const startDate = e.startDate?.value;
         const endDate = e.endDate?.value;
         if (!startDate || !endDate) return;
+        const ISO = /^\d{4}-\d{2}-\d{2}$/;
+        if (!ISO.test(startDate) || !ISO.test(endDate)) {
+            showError('Datas inv\u00e1lidas: usar formato AAAA-MM-DD.');
+            return;
+        }
         if (startDate > endDate) {
             showError('A data inicial tem de ser anterior ou igual a final.');
             return;

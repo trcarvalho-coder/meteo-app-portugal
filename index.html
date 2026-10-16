@@ -6,7 +6,6 @@
     <title>Meteo Portugal — Previsão e Histórico</title>
     <!-- ArcGIS 5.1.26 (Esri) -->
     <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/@arcgis/core/themes/light/main.css">
-    <script src="https://js.arcgis.com/5.1.26/"></script>
     <script type="module">
         import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
         import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
@@ -15,7 +14,8 @@
         import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
         import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
         import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
-        window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic };
+        import Popup from "https://js.arcgis.com/5.1.26/@arcgis/core/widgets/Popup.js";
+        window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic, Popup };
     </script>
     <!-- URL do backend ECMWF em produção (ver docs/deploy-backend.md) -->
     <script>window.ECMWF_BACKEND_URL = window.ECMWF_BACKEND_URL || 'http://127.0.0.1:8787';</script>
@@ -134,9 +134,9 @@
                     <div class="widget-section">
                         <div class="era5-date-row">
                             <label for="era5-start-date">Início</label>
-                            <input type="date" id="era5-start-date" class="era5-date-input" aria-label="Data inicial do histórico">
+                            <input type="text" id="era5-start-date" class="era5-date-input" aria-label="Data inicial do histórico (AAAA-MM-DD)">
                             <label for="era5-end-date">Fim</label>
-                            <input type="date" id="era5-end-date" class="era5-date-input" aria-label="Data final do histórico">
+                            <input type="text" id="era5-end-date" class="era5-date-input" aria-label="Data final do histórico (AAAA-MM-DD)">
                             <button id="era5-search-btn" class="btn-icon" title="Consultar histórico" aria-label="Consultar histórico">
                                 <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
                             </button>
