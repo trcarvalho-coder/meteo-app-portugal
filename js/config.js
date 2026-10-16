@@ -112,7 +112,7 @@ export const Config = {
 
 export const Helpers = {
     formatTemperature: (temp) => temp != null ? `${Math.round(temp)}°C` : '--',
-    formatWindSpeed: (speed) => speed != null ? `${Math.round(speed * 3.6)} km/h` : '--',
+    formatWindSpeed: (speed) => speed != null ? `${Math.round(speed)} km/h` : '--', // valores já normalizados em km/h pela camada de unidades
     formatHumidity: (humidity) => humidity != null ? `${Math.round(humidity)}%` : '--',
     formatPrecipitation: (precip) => precip != null ? `${precip.toFixed(1)} mm` : '--',
     formatPressure: (pressure) => pressure != null ? `${Math.round(pressure)} hPa` : '--',

@@ -1,5 +1,6 @@
 // ===== OpenMeteo API Module =====
 import { Config, Helpers } from './config.js';
+import { normalizeWindSpeed } from './meteo/units.js';
 
 const OpenMeteoModule = (function() {
     'use strict';
@@ -37,7 +38,10 @@ const OpenMeteoModule = (function() {
             latitude: latitude,
             longitude: longitude,
             current: Config.openmeteo.defaultParams.current.join(','),
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
@@ -49,9 +53,9 @@ const OpenMeteoModule = (function() {
             apparentTemperature: data.current.apparent_temperature,
             precipitation: data.current.precipitation,
             weatherCode: data.current.weather_code,
-            windSpeed: data.current.wind_speed_10m,
+            windSpeed: normalizeWindSpeed(data.current.wind_speed_10m, 'kmh'),
             windDirection: data.current.wind_direction_10m,
-            windGust: data.current.wind_gusts_10m,
+            windGust: normalizeWindSpeed(data.current.wind_gusts_10m, 'kmh'),
             pressure: data.current.pressure_msl,
             visibility: data.current.visibility,
             uvIndex: data.current.uv_index,
@@ -84,7 +88,10 @@ const OpenMeteoModule = (function() {
             longitude: longitude,
             hourly: 'temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover',
             forecast_hours: 24,
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
@@ -98,9 +105,9 @@ const OpenMeteoModule = (function() {
                 time: new Date(hourlyData.time[i]),
                 temperature: hourlyData.temperature_2m[i],
                 weatherCode: hourlyData.weather_code[i],
-                windSpeed: hourlyData.wind_speed_10m[i],
+                windSpeed: normalizeWindSpeed(hourlyData.wind_speed_10m[i], 'kmh'),
                 windDirection: hourlyData.wind_direction_10m[i],
-                windGust: hourlyData.wind_gusts_10m ? hourlyData.wind_gusts_10m[i] : null,
+                windGust: hourlyData.wind_gusts_10m && hourlyData.wind_gusts_10m[i] != null ? normalizeWindSpeed(hourlyData.wind_gusts_10m[i], 'kmh') : null,
                 precipitation: hourlyData.precipitation[i],
                 cloudCover: hourlyData.cloud_cover[i],
                 weatherDescription: Helpers.getWeatherDescription(hourlyData.weather_code[i]),
@@ -123,13 +130,15 @@ const OpenMeteoModule = (function() {
         if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
             return cached.data;
         }
-
         const params = {
             latitude: latitude,
             longitude: longitude,
             forecast_days: days,
             daily: 'temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,cloud_cover_mean',
-            timezone: 'Europe/Lisbon'
+            timezone: 'Europe/Lisbon',
+            wind_speed_unit: 'kmh',
+            temperature_unit: 'celsius',
+            precipitation_unit: 'mm'
         };
 
         const data = await fetchData(Config.openmeteo.endpoints.forecast, params);
@@ -145,8 +154,8 @@ const OpenMeteoModule = (function() {
                 maxTemp: dailyData.temperature_2m_max[i],
                 precipitation: dailyData.precipitation_sum[i],
                 weatherCode: dailyData.weather_code[i],
-                windSpeed: dailyData.wind_speed_10m_max[i],
-                windGust: dailyData.wind_gusts_10m_max ? dailyData.wind_gusts_10m_max[i] : null,
+                windSpeed: normalizeWindSpeed(dailyData.wind_speed_10m_max[i], 'kmh'),
+                windGust: dailyData.wind_gusts_10m_max && dailyData.wind_gusts_10m_max[i] != null ? normalizeWindSpeed(dailyData.wind_gusts_10m_max[i], 'kmh') : null,
                 windDirection: dailyData.wind_direction_10m_dominant ? dailyData.wind_direction_10m_dominant[i] : null,
                 cloudCover: dailyData.cloud_cover_mean ? dailyData.cloud_cover_mean[i] : null,
                 weatherDescription: Helpers.getWeatherDescription(dailyData.weather_code[i]),

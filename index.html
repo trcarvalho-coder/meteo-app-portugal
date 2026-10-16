@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meteo Portugal - Windy Style</title>
-
-    <!-- ArcGIS 5.1.26 -->
+    <title>Meteo Portugal — Previsão e Histórico</title>
+    <!-- ArcGIS 5.1.26 (Esri) -->
     <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/@arcgis/core/themes/light/main.css">
     <script src="https://js.arcgis.com/5.1.26/"></script>
     <script type="module">
@@ -18,665 +17,251 @@
         import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
         window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic };
     </script>
-
-    <!-- CSS Moderno (Windy Style) -->
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght=300;400;700&family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Estilos inline para garantir que os painéis autónomos são distintos */
-        .autonomous-panels-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 101;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .autonomous-panel {
-            background: rgba(40, 40, 60, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border: 2px solid #4a90e2;
-            overflow: hidden;
-            width: 350px;
-            transition: all 0.3s ease;
-        }
-        
-        .autonomous-panel-header {
-            padding: 12px 15px;
-            background: linear-gradient(135deg, #4a90e2, #357abd);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: white;
-        }
-        
-        .autonomous-panel-header h2 {
-            margin: 0;
-            font-size: 1rem;
-        }
-        
-        .panel-toggle-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-        
-        .panel-toggle-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .autonomous-panel-content {
-            padding: 15px;
-            max-height: 50vh;
-            overflow: auto;
-        }
-        
-        /* OpenMeteo Panel - Azul */
-        #openmeteo-panel {
-            border-color: #4a90e2;
-        }
-        
-        #openmeteo-panel-header {
-            background: linear-gradient(135deg, #4a90e2, #357abd);
-        }
-        
-        /* IPMA Panel - Laranja */
-        #ipma-panel {
-            border-color: #f39c12;
-        }
-        
-        #ipma-panel-header {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-        }
-        
-        /* Location Panel - Verde */
-        #location-panel {
-            border-color: #2ecc71;
-        }
-        
-        #location-panel-header {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-        }
-        
-        .autonomous-weather-section {
-            background: rgba(50, 50, 70, 0.5);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        
-        .autonomous-weather-section h3 {
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .autonomous-weather-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        
-        .autonomous-weather-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 10px;
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-        
-        .autonomous-location-search {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .autonomous-location-search input {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            background: rgba(30, 30, 50, 0.5);
-            color: #e0e0e0;
-            font-size: 0.85rem;
-        }
-        
-        .autonomous-btn-search {
-            padding: 10px 12px;
-            border: none;
-            background: #4a90e2;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        
-        .autonomous-location-info {
-            background: rgba(30, 30, 50, 0.5);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        
-        .autonomous-location-info p {
-            margin: 4px 0;
-            font-size: 0.85rem;
-            color: #e0e0e0;
-        }
-        
-        .autonomous-location-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .autonomous-btn-gps {
-            padding: 10px 12px;
-            border: none;
-            background: #2ecc71;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-            flex: 1;
-            min-width: 100px;
-        }
-        
-        .autonomous-form-select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            background: rgba(30, 30, 50, 0.5);
-            color: #e0e0e0;
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-        }
-        
-        .autonomous-hourly-scroll {
-            overflow-x: auto;
-            padding-bottom: 8px;
-        }
-        
-        .autonomous-hourly-scroll-content {
-            display: flex;
-            gap: 8px;
-            padding: 5px 0;
-        }
-        
-        .autonomous-hourly-item {
-            min-width: 100px;
-            padding: 8px;
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.75rem;
-        }
-        
-        .autonomous-alerts-scroll {
-            overflow-x: auto;
-            padding-bottom: 8px;
-        }
-        
-        .alert-card {
-            background: rgba(30, 30, 50, 0.5);
-            border-left: 4px solid #e74c3c;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-        }
-        
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .alert-title {
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        
-        .alert-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            color: white;
-        }
-        
-        .alert-details {
-            color: #e0e0e0;
-            margin-bottom: 8px;
-        }
-        
-        .alert-meta {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 4px;
-            font-size: 0.8rem;
-            color: #b0b0b0;
-        }
-        
-        .alert-instruction {
-            margin-top: 8px;
-            padding: 8px;
-            background: rgba(50, 50, 70, 0.5);
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-        
-        .weather-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        
-        .weather-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 10px;
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-        
-        .label {
-            color: #b0b0b0;
-        }
-        
-        .value {
-            color: #e0e0e0;
-            font-weight: 600;
-        }
-        
-        .text-center {
-            text-align: center;
-            color: #b0b0b0;
-        }
-        
-        .hourly-scroll-content {
-            display: flex;
-            gap: 8px;
-            padding: 5px 0;
-        }
-        
-        .hourly-item {
-            min-width: 100px;
-            padding: 8px;
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.75rem;
-        }
-        
-        .forecast-day-small {
-            min-width: 120px;
-            padding: 10px;
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .forecast-day-header-small {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .forecast-date-small {
-            font-size: 0.8rem;
-            color: #e0e0e0;
-        }
-        
-        .forecast-icon-small {
-            font-size: 1.2rem;
-        }
-        
-        .forecast-temps {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        
-        .forecast-max {
-            color: #f39c12;
-            font-weight: bold;
-        }
-        
-        .forecast-min {
-            color: #4a90e2;
-            font-weight: bold;
-        }
-        
-        .forecast-day-details {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 4px;
-            font-size: 0.75rem;
-            color: #b0b0b0;
-        }
-    </style>
 </head>
 <body>
     <div class="windy-container">
         <!-- Mapa principal -->
-        <div id="map-view" class="windy-map"></div>
+        <div id="map-view" class="windy-map" role="application" aria-label="Mapa meteorológico de Portugal"></div>
 
-        <!-- Painel de Controle Esquerdo (Original) -->
-        <div class="windy-control-panel">
-            <div class="panel-header">
-                <h1>🌤️ Meteo Portugal</h1>
-                <p class="subtitle">Previsão em Tempo Real</p>
-            </div>
+        <!-- ===== WIDGETS DA DIREITA (comportamento de botão expansível) ===== -->
+        <div class="autonomous-panels-container" id="widgets-container">
 
-            <div class="main-buttons">
-                <button id="btn-current" class="control-btn active" data-panel="current" title="Condições Atuais">
-                    <i class="fas fa-thermometer-half"></i>
-                    <span>Atual</span>
-                </button>
-                <button id="btn-openmeteo" class="control-btn" data-panel="openmeteo" title="OpenMeteo">
-                    <i class="fas fa-cloud"></i>
-                    <span>OpenMeteo</span>
-                </button>
-                <button id="btn-alerts" class="control-btn" data-panel="alerts" title="Alertas Meteorológicos">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Alertas</span>
-                    <span id="alerts-badge" class="badge">0</span>
-                </button>
-                <button id="btn-forecast" class="control-btn" data-panel="forecast" title="Previsão">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Previsão</span>
-                </button>
-                <button id="btn-location" class="control-btn" data-panel="location" title="Localização">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>Local</span>
-                </button>
-            </div>
-
-            <div class="info-panels">
-                <div id="panel-current" class="info-panel active">
-                    <div class="panel-content">
-                        <div class="current-weather">
-                            <div class="weather-main">
-                                <div class="weather-icon-large" id="current-weather-icon">🌦️</div>
-                                <div class="weather-temp">
-                                    <span id="current-temp">--</span>°C
-                                </div>
-                                <div class="weather-description" id="current-desc">A carregar...</div>
-                            </div>
-                            <div class="weather-details">
-                                <div class="detail-row">
-                                    <div class="detail-item">
-                                        <i class="fas fa-tint"></i>
-                                        <span>Humidade: <strong id="current-humidity">--</strong>%</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-wind"></i>
-                                        <span>Vento: <strong id="current-wind">--</strong> km/h</span>
-                                    </div>
-                                </div>
-                                <div class="detail-row">
-                                    <div class="detail-item">
-                                        <i class="fas fa-bolt"></i>
-                                        <span>Rajada: <strong id="current-gust">--</strong> km/h</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-compass"></i>
-                                        <span>Direção: <strong id="current-direction">--</strong></span>
-                                    </div>
-                                </div>
-                                <div class="detail-row">
-                                    <div class="detail-item">
-                                        <i class="fas fa-cloud-rain"></i>
-                                        <span>Precip: <strong id="current-precip">--</strong> mm</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="panel-openmeteo" class="info-panel">
-                    <div class="panel-header-small">
-                        <h2>🌤️ OpenMeteo - Condições Detalhadas</h2>
-                    </div>
-                    <div class="openmeteo-content">
-                        <div class="weather-section">
-                            <h3>🌡️ Condições Atuais</h3>
-                            <div id="openmeteo-current" class="weather-grid"></div>
-                        </div>
-                        <div class="weather-section">
-                            <h3>⏰ Previsão 24 Horas</h3>
-                            <div id="openmeteo-hourly" class="hourly-scroll"></div>
-                        </div>
-                        <div class="weather-section">
-                            <h3>⚠️ Alertas (7 Dias)</h3>
-                            <div id="openmeteo-alerts" class="alerts-scroll"></div>
-                        </div>
-                        <div class="weather-section">
-                            <h3>📅 Previsão 7 Dias</h3>
-                            <div id="openmeteo-daily" class="forecast-scroll"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="panel-alerts" class="info-panel">
-                    <div class="panel-header-small">
-                        <h2>⚠️ Alertas IPMA</h2>
-                        <div class="alert-filters">
-                            <select id="alert-district" class="form-select">
-                                <option value="">Todos os Distritos</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="alerts-container" class="alerts-scroll"></div>
-                </div>
-
-                <div id="panel-forecast" class="info-panel">
-                    <div class="panel-header-small">
-                        <h2>📅 Previsão</h2>
-                        <div class="forecast-filters">
-                            <select id="forecast-days" class="form-select">
-                                <option value="1">Hoje</option>
-                                <option value="3" selected>3 Dias</option>
-                                <option value="5">5 Dias</option>
-                                <option value="7">7 Dias</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="forecast-container" class="forecast-scroll"></div>
-                </div>
-
-                <div id="panel-location" class="info-panel">
-                    <div class="panel-header-small">
-                        <h2>📍 Localização</h2>
-                    </div>
-                    <div class="location-content">
-                        <div class="location-search">
-                            <input type="text" id="location-search" placeholder="Pesquisar cidade ou coordenadas...">
-                            <button id="search-btn" class="btn-search"><i class="fas fa-search"></i></button>
-                        </div>
-                        <div class="location-info">
-                            <p><strong>Lat:</strong> <span id="location-lat">--</span></p>
-                            <p><strong>Lng:</strong> <span id="location-lng">--</span></p>
-                            <p><strong>Local:</strong> <span id="location-name">--</span></p>
-                        </div>
-                        <button id="btn-gps" class="btn-gps">
-                            <i class="fas fa-location-arrow"></i> Usar Minha Localização
-                        </button>
-                        <button id="btn-map-select" class="btn-gps" type="button">
-                            <i class="fas fa-crosshairs"></i> Selecionar no mapa
-                        </button>
-                        <button id="btn-clear-selection" class="btn-gps" type="button" style="display:none;">
-                            <i class="fas fa-times"></i> Limpar Seleção
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== NOVOS PAINÉIS AUTÓNOMOS ===== -->
-        <div class="autonomous-panels-container">
-            <!-- OpenMeteo Panel -->
-            <div id="openmeteo-panel" class="autonomous-panel expanded">
-                <div class="autonomous-panel-header">
-                    <h2>🌤️ OpenMeteo</h2>
-                    <button id="openmeteo-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
-                        <i class="fas fa-chevron-down"></i>
+            <!-- Widget: Condições Atuais (Open-Meteo) -->
+            <section id="openmeteo-panel" class="widget" data-widget="openmeteo">
+                <h2 class="widget-heading">
+                    <button id="openmeteo-panel-toggle" class="widget-toggle" aria-expanded="true"
+                        aria-controls="openmeteo-panel-content" title="Abrir/fechar widget Open-Meteo">
+                        <span class="widget-title"><i class="fas fa-cloud-sun" aria-hidden="true"></i> Atual (Open-Meteo)</span>
+                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
                     </button>
-                </div>
-                <div id="openmeteo-panel-content" class="autonomous-panel-content">
-                    <div id="openmeteo-loading" class="loading-spinner" style="display:none;">
-                        <div class="spinner"></div>
-                        <p>A carregar dados OpenMeteo...</p>
+                </h2>
+                <div id="openmeteo-panel-content" class="widget-content">
+                    <div id="openmeteo-loading" class="loading-spinner" hidden>
+                        <div class="spinner" role="status" aria-label="A carregar"></div>
+                        <p>A carregar dados Open-Meteo…</p>
                     </div>
-                    
-                    <div class="autonomous-weather-section">
-                        <h3>🌡️ Condições Atuais</h3>
-                        <div id="openmeteo-current-data" class="autonomous-weather-grid"></div>
+                    <div class="widget-section">
+                        <h3>Condições atuais</h3>
+                        <div id="openmeteo-current-data" class="weather-grid"></div>
                     </div>
-
-                    <div class="autonomous-weather-section">
-                        <h3>⏰ Previsão 24 Horas</h3>
-                        <div id="openmeteo-hourly-data" class="autonomous-hourly-scroll"></div>
+                    <div class="widget-section">
+                        <h3>Próximas 24 horas</h3>
+                        <div id="openmeteo-hourly-data" class="hourly-scroll" tabindex="0" aria-label="Previsão horária, lista navegável horizontalmente"></div>
                     </div>
-
-                    <div class="autonomous-weather-section">
-                        <h3>⚠️ Alertas Meteorológicos</h3>
-                        <div id="openmeteo-alerts-data" class="autonomous-hourly-scroll"></div>
-                    </div>
-
-                    <div class="autonomous-weather-section">
-                        <h3>📅 Previsão 3 Dias</h3>
-                        <div id="openmeteo-daily-3-data" class="autonomous-hourly-scroll"></div>
-                    </div>
-
-                    <div class="autonomous-weather-section">
-                        <h3>📅 Previsão 5 Dias</h3>
-                        <div id="openmeteo-daily-5-data" class="autonomous-hourly-scroll"></div>
-                    </div>
-
-                    <div class="autonomous-weather-section">
-                        <h3>📅 Previsão 7 Dias</h3>
-                        <div id="openmeteo-daily-7-data" class="autonomous-hourly-scroll"></div>
+                    <div class="widget-section">
+                        <h3>Previsão diária</h3>
+                        <div id="openmeteo-daily-3-data" class="daily-scroll"></div>
+                        <div id="openmeteo-daily-5-data" class="daily-scroll"></div>
+                        <div id="openmeteo-daily-7-data" class="daily-scroll"></div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- IPMA Panel -->
-            <div id="ipma-panel" class="autonomous-panel expanded">
-                <div class="autonomous-panel-header">
-                    <h2>⚠️ Alertas IPMA</h2>
-                    <button id="ipma-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
-                        <i class="fas fa-chevron-down"></i>
+            <!-- Widget: ECMWF — Previsão 7 dias -->
+            <section id="ecmwf-panel" class="widget" data-widget="ecmwf">
+                <h2 class="widget-heading">
+                    <button id="ecmwf-panel-toggle" class="widget-toggle" aria-expanded="true"
+                        aria-controls="ecmwf-panel-content" title="Abrir/fechar widget ECMWF">
+                        <span class="widget-title"><i class="fas fa-satellite-dish" aria-hidden="true"></i> ECMWF — Previsão 7 dias</span>
+                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
                     </button>
-                </div>
-                <div id="ipma-panel-content" class="autonomous-panel-content">
-                    <div id="ipma-loading" class="loading-spinner" style="display:none;">
-                        <div class="spinner"></div>
-                        <p>A carregar alertas IPMA...</p>
+                </h2>
+                <div id="ecmwf-panel-content" class="widget-content">
+                    <div id="ecmwf-loading" class="loading-spinner" hidden>
+                        <div class="spinner" role="status" aria-label="A carregar"></div>
+                        <p>A carregar camadas ECMWF…</p>
                     </div>
-                    
-                    <div class="autonomous-alert-filters">
-                        <select id="ipma-district-filter" class="autonomous-form-select">
-                            <option value="">Todos os Distritos</option>
+                    <div id="ecmwf-error" class="widget-error" hidden>
+                        <p id="ecmwf-error-message" role="alert"></p>
+                        <button id="ecmwf-retry" class="btn-retry"><i class="fas fa-rotate-right" aria-hidden="true"></i> Tentar novamente</button>
+                    </div>
+                    <div class="widget-section">
+                        <label for="ecmwf-variable">Variável</label>
+                        <select id="ecmwf-variable" class="form-select" aria-label="Variável meteorológica">
+                            <option value="temperature" selected>Temperatura a 2 m (°C)</option>
+                            <option value="windSpeed">Vento a 10 m (km/h)</option>
+                            <option value="precipitation">Precipitação no intervalo (mm)</option>
+                        </select>
+                        <p id="ecmwf-variable-meta" class="widget-meta" aria-live="polite"></p>
+                    </div>
+                    <div class="widget-section">
+                        <h3>Execução do modelo</h3>
+                        <p id="ecmwf-run-info" class="widget-meta" aria-live="polite">A determinar execução…</p>
+                    </div>
+                    <div class="widget-section">
+                        <label for="ecmwf-layer-opacity">Opacidade da camada</label>
+                        <input type="range" id="ecmwf-layer-opacity" min="0" max="100" value="70"
+                            aria-label="Opacidade da camada no mapa">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Widget: ERA5 — Histórico (integração pendente) -->
+            <section id="era5-panel" class="widget" data-widget="era5">
+                <h2 class="widget-heading">
+                    <button id="era5-panel-toggle" class="widget-toggle" aria-expanded="true"
+                        aria-controls="era5-panel-content" title="Abrir/fechar widget ERA5">
+                        <span class="widget-title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> ERA5 — Histórico</span>
+                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
+                    </button>
+                </h2>
+                <div id="era5-panel-content" class="widget-content">
+                    <div class="widget-status status-pending" role="status">
+                        <p><strong>Integração pendente.</strong> O ARCO-ERA5 (Google Cloud BigQuery,
+                            <code>bigquery-public-data.noaa_gsod</code> não aplicável; catálogo
+                            <code>bigquery-public-data.arco_era5</code>) requer autenticação Google Cloud e
+                            um projeto BigQuery com faturação ativa — dependências externas não disponíveis
+                            nesta aplicação de momento.</p>
+                        <p>ERA5 é uma <strong>reanálise histórica</strong>, não previsão dos próximos 7 dias.
+                        Nenhum dado histórico é apresentado enquanto a integração não estiver operacional;
+                        não são usados dados simulados.</p>
+                        <p>Contexto temporal: histórico independente da linha temporal de previsão.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Widget: Alertas IPMA -->
+            <section id="ipma-panel" class="widget" data-widget="ipma">
+                <h2 class="widget-heading">
+                    <button id="ipma-panel-toggle" class="widget-toggle" aria-expanded="true"
+                        aria-controls="ipma-panel-content" title="Abrir/fechar widget IPMA">
+                        <span class="widget-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Alertas IPMA</span>
+                        <span id="alerts-badge" class="badge" hidden>0</span>
+                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
+                    </button>
+                </h2>
+                <div id="ipma-panel-content" class="widget-content">
+                    <div id="ipma-loading" class="loading-spinner" hidden>
+                        <div class="spinner" role="status" aria-label="A carregar"></div>
+                        <p>A carregar alertas IPMA…</p>
+                    </div>
+                    <div class="widget-section">
+                        <label class="visually-hidden" for="ipma-district-filter">Filtrar por distrito</label>
+                        <select id="ipma-district-filter" class="form-select">
+                            <option value="">Todos os distritos</option>
                         </select>
                     </div>
-                    
-                    <div id="ipma-alerts-data" class="autonomous-alerts-scroll"></div>
-                    
-                    <div class="autonomous-weather-section">
-                        <h3>📅 Previsão IPMA</h3>
-                        <select id="ipma-forecast-days" class="autonomous-form-select">
+                    <div id="ipma-alerts-data" class="alerts-scroll" aria-live="polite"></div>
+                    <div class="widget-section">
+                        <h3>Previsão IPMA</h3>
+                        <label class="visually-hidden" for="ipma-forecast-days">Dias de previsão</label>
+                        <select id="ipma-forecast-days" class="form-select">
                             <option value="1">Hoje</option>
-                            <option value="3" selected>3 Dias</option>
-                            <option value="5">5 Dias</option>
-                            <option value="7">7 Dias</option>
+                            <option value="3" selected>3 dias</option>
+                            <option value="5">5 dias</option>
+                            <option value="7">7 dias</option>
                         </select>
-                        <div id="ipma-forecast-data" class="autonomous-hourly-scroll"></div>
+                        <div id="ipma-forecast-data" class="daily-scroll"></div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Location Panel -->
-            <div id="location-panel" class="autonomous-panel expanded">
-                <div class="autonomous-panel-header">
-                    <h2>📍 Localização</h2>
-                    <button id="location-panel-toggle" class="panel-toggle-btn" title="Expandir/Colapsar">
-                        <i class="fas fa-chevron-down"></i>
+            <!-- Widget: Localização -->
+            <section id="location-panel" class="widget" data-widget="location">
+                <h2 class="widget-heading">
+                    <button id="location-panel-toggle" class="widget-toggle" aria-expanded="true"
+                        aria-controls="location-panel-content" title="Abrir/fechar widget Localização">
+                        <span class="widget-title"><i class="fas fa-location-dot" aria-hidden="true"></i> Localização</span>
+                        <i class="fas fa-chevron-down widget-chevron" aria-hidden="true"></i>
                     </button>
-                </div>
-                <div id="location-panel-content" class="autonomous-panel-content">
-                    <div class="autonomous-location-content">
-                        <div class="autonomous-location-search">
-                            <input type="text" id="location-search-input" placeholder="Pesquisar cidade ou coordenadas...">
-                            <button id="location-search-btn" class="autonomous-btn-search"><i class="fas fa-search"></i></button>
-                        </div>
-                        <div class="autonomous-location-info">
-                            <p><strong>Lat:</strong> <span id="location-lat-display">--</span></p>
-                            <p><strong>Lng:</strong> <span id="location-lng-display">--</span></p>
-                            <p><strong>Local:</strong> <span id="location-name-display">--</span></p>
-                        </div>
-                        <div class="autonomous-location-buttons">
-                            <button id="location-gps-btn" class="autonomous-btn-gps">
-                                <i class="fas fa-location-arrow"></i> Usar Minha Localização
-                            </button>
-                            <button id="location-map-select-btn" class="autonomous-btn-gps">
-                                <i class="fas fa-crosshairs"></i> Selecionar no Mapa
-                            </button>
-                            <button id="location-clear-selection-btn" class="autonomous-btn-gps" style="display:none;">
-                                <i class="fas fa-times"></i> Limpar Seleção
-                            </button>
-                        </div>
+                </h2>
+                <div id="location-panel-content" class="widget-content">
+                    <div class="location-search-row">
+                        <label class="visually-hidden" for="location-search-input">Pesquisar cidade ou coordenadas</label>
+                        <input type="search" id="location-search-input" placeholder="Cidade ou lat, lng…">
+                        <button id="location-search-btn" class="btn-icon" title="Pesquisar" aria-label="Pesquisar localização">
+                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="location-info">
+                        <p><strong>Lat:</strong> <span id="location-lat-display">--</span></p>
+                        <p><strong>Lng:</strong> <span id="location-lng-display">--</span></p>
+                        <p><strong>Local:</strong> <span id="location-name-display">--</span></p>
+                    </div>
+                    <div class="location-buttons">
+                        <button id="location-gps-btn" class="btn-secondary">
+                            <i class="fas fa-location-arrow" aria-hidden="true"></i> Usar a minha localização
+                        </button>
+                        <button id="location-map-select-btn" class="btn-secondary">
+                            <i class="fas fa-crosshairs" aria-hidden="true"></i> Selecionar no mapa
+                        </button>
+                        <button id="location-clear-selection-btn" class="btn-secondary" hidden>
+                            <i class="fas fa-times" aria-hidden="true"></i> Limpar seleção
+                        </button>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
 
-        <!-- Basemap Panel -->
-        <div class="basemap-panel">
-            <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa Topográfico">
-                <i class="fas fa-map"></i>
+        <!-- ===== LINHA TEMPORAL TRI-HORÁRIA (previsão) ===== -->
+        <div class="timeline-panel" id="timeline-panel" role="region" aria-label="Linha temporal de previsão">
+            <div class="timeline-controls">
+                <button id="tl-prev" class="btn-icon" title="Recuar 3 horas" aria-label="Recuar 3 horas">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button id="tl-play" class="btn-icon" title="Reproduzir/Pausar animação" aria-label="Reproduzir ou pausar animação" aria-pressed="false">
+                    <i class="fas fa-play" aria-hidden="true" id="tl-play-icon"></i>
+                </button>
+                <button id="tl-next" class="btn-icon" title="Avançar 3 horas" aria-label="Avançar 3 horas">
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <input type="range" id="tl-range" min="0" max="56" value="0" step="1"
+                    class="timeline-range" aria-label="Instante de previsão">
+                <output id="tl-datetime" class="timeline-datetime" for="tl-range">--</output>
+                <label class="visually-hidden" for="tl-speed">Velocidade da animação</label>
+                <select id="tl-speed" class="form-select timeline-speed" aria-label="Velocidade da animação">
+                    <option value="2000">Lenta</option>
+                    <option value="1000" selected>Normal</option>
+                    <option value="500">Rápida</option>
+                </select>
+                <label class="tl-loop-label"><input type="checkbox" id="tl-loop" checked> Repetir</label>
+                <label class="visually-hidden" for="tl-timezone">Fuso horário</label>
+                <select id="tl-timezone" class="form-select timeline-speed" aria-label="Fuso horário">
+                    <option value="Europe/Lisbon" selected>Europe/Lisbon</option>
+                    <option value="Atlantic/Azores">Atlantic/Azores</option>
+                    <option value="UTC">UTC</option>
+                </select>
+            </div>
+            <div id="tl-step-info" class="timeline-step-info" aria-live="polite"></div>
+        </div>
+
+        <!-- Legenda da camada ativa -->
+        <div class="legend-panel" id="legend-panel" hidden>
+            <h3 id="legend-title">Legenda</h3>
+            <div id="legend-bar" class="legend-bar"></div>
+            <div id="legend-labels" class="legend-labels"></div>
+            <p id="legend-meta" class="widget-meta"></p>
+        </div>
+
+        <!-- Basemaps -->
+        <div class="basemap-panel" role="toolbar" aria-label="Selecionar mapa base">
+            <button id="basemap-streets" class="basemap-btn active" data-basemap="topo-vector" title="Mapa topográfico">
+                <i class="fas fa-map" aria-hidden="true"></i>
             </button>
             <button id="basemap-satellite" class="basemap-btn" data-basemap="satellite" title="Satélite">
-                <i class="fas fa-satellite"></i>
+                <i class="fas fa-satellite" aria-hidden="true"></i>
             </button>
             <button id="basemap-terrain" class="basemap-btn" data-basemap="terrain" title="Terreno">
-                <i class="fas fa-mountain"></i>
+                <i class="fas fa-mountain" aria-hidden="true"></i>
             </button>
         </div>
 
-        <!-- Attribution Panel -->
+        <!-- Atribuições e licenças -->
         <div class="attribution-panel">
             <div class="data-sources">
-                <span>🌍 <strong>Mapas:</strong> Esri</span>
-                <span>⚠️ <strong>Alertas:</strong> IPMA</span>
-                <span>🌤️ <strong>Dados:</strong> OpenMeteo</span>
+                <span>Mapas: <strong>Esri</strong></span>
+                <span>Previsão 7 dias: <strong>ECMWF Open Data (AWS)</strong> — CC-BY-4.0</span>
+                <span>Alertas: <strong>IPMA</strong></span>
+                <span>Atual/rajadas: <strong>Open-Meteo</strong> — uso não comercial, &lt;10 000 chamadas/dia</span>
+                <span>Histórico: <strong>ERA5/ARCO-ERA5</strong> — integração pendente</span>
             </div>
         </div>
     </div>
 
-    <!-- Load all modules -->
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/panels/location-panel.js"></script>
-    <script type="module" src="js/panels/openmeteo-panel.js"></script>
-    <script type="module" src="js/panels/ipma-panel.js"></script>
-    <script type="module" src="js/map.js"></script>
-    <script type="module" src="js/ipma-api.js"></script>
-    <script type="module" src="js/openmeteo-api.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <!-- Módulos -->
     <script type="module" src="js/index.js"></script>
 </body>
 </html>
