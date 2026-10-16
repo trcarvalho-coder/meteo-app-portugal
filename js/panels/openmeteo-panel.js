@@ -177,30 +177,6 @@ const OpenMeteoPanel = (function() {
         return forecast;
     }
 
-    async function loadAlerts(latitude, longitude, forceRefresh = false) {
-        const cacheKey = `alerts-${latitude.toFixed(4)}-${longitude.toFixed(4)}`;
-        const now = Date.now();
-        const cached = dataCache[cacheKey];
-
-        if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-            return cached.data;
-        }
-
-        try {
-            // OpenMeteo doesn't provide weather alerts directly
-            // For Portugal, we can use IPMA alerts or integrate with MeteoAlarm API
-            // For now, return empty array as placeholder
-            // In production, you would integrate with a proper alerts service
-            const alerts = [];
-
-            dataCache[cacheKey] = { data: alerts, timestamp: now };
-            return alerts;
-        } catch (error) {
-            console.error('[OpenMeteoPanel] Error loading alerts:', error);
-            return cached ? cached.data : [];
-        }
-    }
-
     // ===== Display Functions =====
 
     function formatValue(value, unit = '') {
@@ -379,13 +355,12 @@ const OpenMeteoPanel = (function() {
         showLoading();
         
         try {
-            const [current, hourly, daily3, daily5, daily7, alerts] = await Promise.all([
+            const [current, hourly, daily3, daily5, daily7] = await Promise.all([
                 loadCurrentConditions(latitude, longitude, true),
                 loadHourlyForecast(latitude, longitude, true),
                 loadDailyForecast(latitude, longitude, 3, true),
                 loadDailyForecast(latitude, longitude, 5, true),
-                loadDailyForecast(latitude, longitude, 7, true),
-                loadAlerts(latitude, longitude, true)
+                loadDailyForecast(latitude, longitude, 7, true)
             ]);
 
             renderCurrentConditions(current);
@@ -393,7 +368,6 @@ const OpenMeteoPanel = (function() {
             renderDailyForecast(daily3, 3);
             renderDailyForecast(daily5, 5);
             renderDailyForecast(daily7, 7);
-            renderAlerts(alerts);
             
             hideLoading();
         } catch (error) {

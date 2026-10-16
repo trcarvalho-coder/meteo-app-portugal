@@ -42,6 +42,7 @@ const OpenMeteoForecastPanel = (function() {
             load();
         });
         e.retry?.addEventListener('click', load);
+        if (currentLocation) load(); // localizacao definida antes do painel abrir
     }
 
     function setLocation(lat, lng, name) {
@@ -77,6 +78,7 @@ const OpenMeteoForecastPanel = (function() {
     async function load() {
         const e = els();
         if (!currentLocation) return;
+        if (!e.startDate && !e.variable && !e.results && !e.hourly) return; // painel ainda nao aberto
         if (inFlight) inFlight.abort();
         inFlight = new AbortController();
 

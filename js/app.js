@@ -17,7 +17,14 @@ const AppModule = (function() {
         try {
             Helpers.log('🚀 Inicializando aplicação…');
 
-            const mapResult = await MapModule.init();
+            // o mapa e inicializado por index.js; reutilizar sem recriar a view
+            if (!MapModule.isInitialized || !MapModule.isInitialized()) {
+                const mapResult = await MapModule.init();
+                if (!mapResult) {
+                    Helpers.showError('Falha ao inicializar mapa');
+                    return;
+                }
+            }
             if (!mapResult) {
                 Helpers.showError('Falha ao inicializar mapa');
                 return;

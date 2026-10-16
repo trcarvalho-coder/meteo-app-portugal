@@ -34,6 +34,12 @@ const MapModule = (function() {
 
             await view.when();
 
+            // ArcGIS SDK 5.x: o widget Popup tem de ser instanciado explicitamente
+            // e atribuido a view (o stub por omissao nao tem API utilizavel)
+            if (arcgis.Popup) {
+                view.popup = new arcgis.Popup({ view: view });
+            }
+
             weatherLayer = new GraphicsLayer();
             alertsLayer = new GraphicsLayer();
             map.add(weatherLayer);
@@ -373,6 +379,7 @@ const MapModule = (function() {
         init,
         changeBasemap,
         getCurrentLocation,
+        isSelectionMode: () => mapSelectionMode,
         addLocationMarker,
         addWeatherData,
         addAlertsToMap,
