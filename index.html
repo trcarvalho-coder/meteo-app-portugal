@@ -10,12 +10,13 @@
         import Map from "https://js.arcgis.com/5.1.26/@arcgis/core/Map.js";
         import MapView from "https://js.arcgis.com/5.1.26/@arcgis/core/views/MapView.js";
         import GraphicsLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/GraphicsLayer.js";
+        import FeatureLayer from "https://js.arcgis.com/5.1.26/@arcgis/core/layers/FeatureLayer.js";
         import Point from "https://js.arcgis.com/5.1.26/@arcgis/core/geometry/Point.js";
         import SimpleMarkerSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/SimpleMarkerSymbol.js";
         import TextSymbol from "https://js.arcgis.com/5.1.26/@arcgis/core/symbols/TextSymbol.js";
         import Graphic from "https://js.arcgis.com/5.1.26/@arcgis/core/Graphic.js";
         import Popup from "https://js.arcgis.com/5.1.26/@arcgis/core/widgets/Popup.js";
-        window.arcgis = { Map, MapView, GraphicsLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic, Popup };
+        window.arcgis = { Map, MapView, GraphicsLayer, FeatureLayer, Point, SimpleMarkerSymbol, TextSymbol, Graphic, Popup };
     </script>
     <!-- URL do backend ECMWF: NÃO definir em produção (o site publicado usa
          apenas o JSON estático). window.ECMWF_BACKEND_URL é detetada apenas em
