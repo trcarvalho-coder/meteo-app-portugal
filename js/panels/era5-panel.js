@@ -76,8 +76,10 @@ const ERA5Panel = (function() {
             e.loading?.setAttribute('hidden', '');
             render(data);
         } catch (err) {
-            if (err.name === 'AbortError') return;
+            // mesmo em abort (pedido substituído/timeout) o spinner é escondido;
+            // o novo pedido volta a mostrá-lo
             e.loading?.setAttribute('hidden', '');
+            if (err.name === 'AbortError') return;
             showError('Falha ao obter historico ERA5: ' + err.message);
         }
     }

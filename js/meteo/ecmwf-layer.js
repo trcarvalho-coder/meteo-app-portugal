@@ -65,13 +65,21 @@ function renderField(map, field, metadata) {
         for (let j = 0; j < lons.length; j++) {
             const value = values[i][j];
             if (value == null) continue; // indisponível não é desenhado, nunca zero
+            // FeatureLayer cliente não suporta geometryType 'extent'
+            // (esriGeometryEnvelope); cada célula é um retângulo de 4 vértices
+            const w = 0.125;
+            const x = lons[j];
+            const y = lats[i];
             features.push({
                 geometry: {
-                    type: 'extent',
-                    xmin: lons[j] - 0.125,
-                    xmax: lons[j] + 0.125,
-                    ymin: lats[i] - 0.125,
-                    ymax: lats[i] + 0.125,
+                    type: 'polygon',
+                    rings: [[
+                        [x - w, y - w],
+                        [x + w, y - w],
+                        [x + w, y + w],
+                        [x - w, y + w],
+                        [x - w, y - w]
+                    ]],
                     spatialReference: { wkid: 4326 }
                 },
                 attributes: { value, unit: metadata.unit, variable: metadata.displayName }
@@ -89,7 +97,7 @@ function renderField(map, field, metadata) {
         ],
         objectIdField: 'objectId',
         outFields: ['value', 'unit', 'variable'],
-        geometryType: 'extent',
+        geometryType: 'polygon',
         spatialReference: { wkid: 4326 },
         renderer: {
             type: 'class-breaks',

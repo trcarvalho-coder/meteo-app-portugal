@@ -65,8 +65,9 @@ const OpenMeteoPanel = (function() {
         return data;
     }
 
-    async function loadCurrentConditions(latitude, longitude, forceRefresh = false) {
-        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+    async function loadCurrentConditions(latitude, longitude, forceRefresh = false, combined = undefined) {
+        // `combined` evita repetir o pedido: o updatePanel obtém os dados UMA vez
+        const data = combined !== undefined ? combined : await loadCombinedForecast(latitude, longitude, forceRefresh);
         if (!data || !data.current) return null;
 
         const conditions = {
@@ -92,8 +93,8 @@ const OpenMeteoPanel = (function() {
         return conditions;
     }
 
-    async function loadHourlyForecast(latitude, longitude, forceRefresh = false) {
-        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+    async function loadHourlyForecast(latitude, longitude, forceRefresh = false, combined = undefined) {
+        const data = combined !== undefined ? combined : await loadCombinedForecast(latitude, longitude, forceRefresh);
         if (!data || !data.hourly) return [];
 
         const hourly = [];
@@ -117,8 +118,8 @@ const OpenMeteoPanel = (function() {
         return hourly;
     }
 
-    async function loadDailyForecast(latitude, longitude, days = 7, forceRefresh = false) {
-        const data = await loadCombinedForecast(latitude, longitude, forceRefresh);
+    async function loadDailyForecast(latitude, longitude, days = 7, forceRefresh = false, combined = undefined) {
+        const data = combined !== undefined ? combined : await loadCombinedForecast(latitude, longitude, forceRefresh);
         if (!data || !data.daily) return [];
 
         // os dias pedidos derivam por slice do único pedido de 7 dias
@@ -336,9 +337,12 @@ const OpenMeteoPanel = (function() {
         showLoading();
 
         try {
-            const current = await loadCurrentConditions(latitude, longitude);
-            const hourly = await loadHourlyForecast(latitude, longitude);
-            const daily = await loadDailyForecast(latitude, longitude, 7);
+            // pedido ÚNICO partilhado pelas três vistas (um só ciclo de retry
+            // por atualização, mesmo em falha — evita o "loop a carregar")
+            const combined = await loadCombinedForecast(latitude, longitude);
+            const current = await loadCurrentConditions(latitude, longitude, false, combined);
+            const hourly = await loadHourlyForecast(latitude, longitude, false, combined);
+            const daily = await loadDailyForecast(latitude, longitude, 7, false, combined);
             if (!current && !hourly.length && !daily.length) {
                 hideLoading();
                 showUnavailable();
@@ -346,11 +350,13 @@ const OpenMeteoPanel = (function() {
             }
             hideUnavailable();
 
-            renderCurrentConditions(current);
-            renderHourlyForecast(hourly);
-            renderDailyForecast(daily.slice(0, 3), 3);
-            renderDailyForecast(daily.slice(0, 5), 5);
-            renderDailyForecast(daily, 7);
+            if (current) renderCurrentConditions(current);
+            if (hourly.length) renderHourlyForecast(hourly);
+            if (daily.length) {
+                renderDailyForecast(daily.slice(0, 3), 3);
+                renderDailyForecast(daily.slice(0, 5), 5);
+                renderDailyForecast(daily, 7);
+            }
 
             hideLoading();
         } catch (error) {

@@ -35,7 +35,19 @@ async function loadDailyHistory(latitude, longitude, startDate, endDate, { signa
         precipitation_unit: 'mm'
     });
 
-    const response = await fetch(`${ERA5_BASE}?${params}`, { signal });
+    // Timeout de 30 s: um pedido pendurado não deixa o widget eternamente
+    // "a carregar" (o archive-api pode demorar; 30 s cobre os casos normais)
+    const timeoutController = new AbortController();
+    const timer = setTimeout(() => timeoutController.abort(), 30000);
+    const requestSignal = signal
+        ? AbortSignal.any([signal, timeoutController.signal])
+        : timeoutController.signal;
+    let response;
+    try {
+        response = await fetch(`${ERA5_BASE}?${params}`, { signal: requestSignal });
+    } finally {
+        clearTimeout(timer);
+    }
     if (!response.ok) {
         let msg = `HTTP ${response.status}`;
         try { msg = (await response.json()).reason || msg; } catch (_) { /* mantem */ }
