@@ -24,7 +24,9 @@ env:
 jobs:
   precompute:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 90 min: o S3 do ECMWF aplica "503 Slow Down" frequente; mesmo com
+    # throttle e retry curto, corridas em horas de pico precisam de margem.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -39,13 +41,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/meteo-cache
-          key: ecmwf-cache-${{ github.run_id }}
-          restore-keys: ecmwf-cache-
+          # nova chave por corrida (grava sempre); restore-keys traz a cache
+          # anterior: corridas canceladas retomam os campos já obtidos da
+          # mesma execução (TTL da cache npz é 24 h no passo de pre-compute)
+          key: ecmwf-cache-${{ github.run_number }}
+          restore-keys: |
+            ecmwf-cache-
 
       - name: Pre-computar campos (0..72 h, passos de 3 h)
         env:
           METEO_CACHE_DIR: /tmp/meteo-cache
+          METEO_CACHE_TTL: "86400"
           ECMWF_MAX_STEP: "72"
+          ECMWF_THROTTLE: "3"
+          ECMWF_RETRY_AFTER: "30"
         run: python backend/precompute.py
 
       - name: Validar índice e ficheiros antes do commit

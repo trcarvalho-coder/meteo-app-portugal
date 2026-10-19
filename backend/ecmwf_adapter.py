@@ -39,6 +39,10 @@ CACHE_DIR = os.environ.get("METEO_CACHE_DIR", "/tmp/meteo-cache")
 CACHE_TTL_SECONDS = int(os.environ.get("METEO_CACHE_TTL", "3600"))
 PROCESSING_VERSION = "v1"
 
+# Pausa entre downloads: mitiga "503 Slow Down" do S3 em pedidos rápidos.
+THROTTLE_SECONDS = float(os.environ.get("ECMWF_THROTTLE", "3"))
+_last_fetch_time = 0.0
+
 # Horizonte de previsão: 0 h a 72 h. Passos nativos de 3 h -> 25 instantes.
 # Pode ser reduzido/opcionado via ECMWF_MAX_STEP (usado pela GitHub Action).
 MAX_STEP_HOURS = int(os.environ.get("ECMWF_MAX_STEP", "72"))
@@ -143,6 +147,11 @@ def _fetch_field(run: dict, param: str, step: int) -> tuple[np.ndarray, np.ndarr
     Usa pedidos parciais: o pacote ecmwf-opendata lê o índice e descarrega
     apenas a mensagem GRIB do parâmetro/passo pedidos (validado: ~650 kB por
     campo em vez de ~140 MB por ficheiro).
+
+    O S3 aplica "503 Slow Down" em pedidos rápidos: há uma pausa entre
+    downloads (THROTTLE_SECONDS) e o retry da biblioteca foi reduzido para
+    retry_after=30 s (o default de 120 s fazia cada 503 custar 2 min e
+    exceder o tempo limite da job).
     """
     cache = _cache_path(run, param, step)
     if os.path.exists(cache) and (time.time() - os.path.getmtime(cache)) < CACHE_TTL_SECONDS:
@@ -151,8 +160,20 @@ def _fetch_field(run: dict, param: str, step: int) -> tuple[np.ndarray, np.ndarr
 
     from ecmwf.opendata import Client
 
-    client = Client(model="ifs", source="aws")
-    target = os.path.join(CACHE_DIR, f"tmp-{param}-{step}.grib2")
+    client = Client(
+        model="ifs",
+        source="aws",
+        retry_after=int(os.environ.get("ECMWF_RETRY_AFTER", "30")),
+        maximum_retries=int(os.environ.get("ECMWF_MAX_RETRIES", "20")),
+    )
+    target = os.path.join(CACHE_DIR, f"tmp-{run['date']}{run['hour']}-{param}-{step}.grib2")
+
+    # throttle: espaçar pedidos ao S3 reduz os "503 Slow Down"
+    global _last_fetch_time
+    elapsed = time.time() - _last_fetch_time
+    if elapsed < THROTTLE_SECONDS:
+        time.sleep(THROTTLE_SECONDS - elapsed)
+
     client.retrieve(
         request={
             "date": run["date"],
@@ -174,6 +195,7 @@ def _fetch_field(run: dict, param: str, step: int) -> tuple[np.ndarray, np.ndarr
 
     np.savez_compressed(cache, lats=lats, lons=lons, values=values)
     os.remove(target)
+    _last_fetch_time = time.time()
     return lats, lons, values
 
 
