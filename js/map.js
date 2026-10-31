@@ -1,6 +1,16 @@
 // ===== Map Module para ArcGIS 5.1.26 =====
 import { Config, Helpers } from './config.js';
 
+// Área de interesse: Atlântico Norte — limitado a oeste pelos EUA (-100°)
+// e a este pela Alemanha (16°E); hemisfério norte (0..72°N).
+export const AOI_EXTENT = {
+    xmin: -100.0,
+    ymin: 0.0,
+    xmax: 16.0,
+    ymax: 72.0,
+    spatialReference: { wkid: 4326 }
+};
+
 const MapModule = (function() {
     'use strict';
 
@@ -47,6 +57,7 @@ const MapModule = (function() {
 
             setupEventListeners();
             updateLocationInfo();
+            focusAreaOfInterest();
 
             mapInitialized = true;
             Helpers.log('✅ Mapa inicializado com sucesso!');
@@ -360,6 +371,15 @@ const MapModule = (function() {
         if (nameEl) nameEl.textContent = currentLocation.name || 'Portugal';
     }
 
+    // Enquadra o mapa na área de interesse (Atlântico Norte: -100..16E, 0..72N)
+    function focusAreaOfInterest() {
+        if (!view) return;
+        view.goTo({ extent: AOI_EXTENT }).catch(() => {
+            // se o extent falhar (ecrã muito estreito), centra no Atlântico Norte
+            view.goTo({ center: [-42, 38], zoom: 3 });
+        });
+    }
+
     function centerOnCoordinates(longitude, latitude, zoom = null) {
         if (!mapInitialized || !view) {
             return;
@@ -381,6 +401,8 @@ const MapModule = (function() {
         addAlertsToMap,
         updateLocationInfo,
         centerOnCoordinates,
+        focusAreaOfInterest,
+        AOI_EXTENT,
         toggleMapSelectionMode,
         clearMapSelection,
         exitMapSelectionMode,

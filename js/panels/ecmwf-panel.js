@@ -6,7 +6,7 @@
 import { VARIABLE_CATALOG, SCALES } from '../meteo/catalog.js';
 import EcmwfApi from '../meteo/ecmwf-api.js';
 import EcmwfLayer from '../meteo/ecmwf-layer.js';
-import Timeline from '../meteo/timeline.js';
+import OmTimeline from '../meteo/om-timeline.js';
 import { Helpers } from '../config.js';
 
 const ECMWFPanel = (function() {
@@ -57,15 +57,13 @@ const ECMWFPanel = (function() {
             nativeSteps = nativeStepList();
         }
 
-        Timeline.init({
-            native: nativeSteps.length === Timeline.HORIZON_STEPS ? nativeSteps : nativeStepList(),
-            runBase: runBaseIso(),
-            onStep: (index) => {
-                const { step } = Timeline.stepInfo(index);
-                currentStep = step;
-                loadStep(step);
-                prefetchNextSteps(step);
-            }
+        // Partilha a mesma linha temporal de 15 dias (OmTimeline) com o painel
+        // de camadas Open-Meteo; esta fonte (AWS) so tem dados ate 72 h.
+        OmTimeline.init({});
+        OmTimeline.addStepListener((step) => {
+            currentStep = step;
+            loadStep(step);
+            prefetchNextSteps(step);
         });
 
         if (e.runInfo && runInfo) {
@@ -75,7 +73,7 @@ const ECMWFPanel = (function() {
         }
 
         updateVariableMeta();
-        Timeline.select(0);
+        OmTimeline.select(0);
     }
 
     function nativeStepList() {
@@ -139,11 +137,11 @@ const ECMWFPanel = (function() {
                     }
                     throw err;
                 }
-            } else if (Timeline.isNative(step / 3)) {
+            } else if (step <= 72 && nativeSteps.includes(step)) {
                 field = await EcmwfApi.getField(currentVariable, step, { signal: inFlight.signal });
             } else {
                 throw Object.assign(
-                    new Error(`Passo de ${step} h não nativo para variável instantânea; interpolação identificada ainda não implementada para este passo.`),
+                    new Error(`Fonte ECMWF AWS apenas cobre até 72 h; o passo de ${step} h está disponível nas camadas Open-Meteo (15 dias).`),
                     { code: 'unavailable' }
                 );
             }

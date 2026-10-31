@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meteo Portugal — Previsão e Histórico</title>
+    <title>Meteo Atlântico — Previsão ECMWF 15 dias</title>
     <!-- ArcGIS 5.1.26 (Esri) -->
     <link rel="stylesheet" href="https://js.arcgis.com/5.1.26/@arcgis/core/themes/light/main.css">
     <script type="module">
@@ -38,7 +38,10 @@
             <button class="rail-btn" data-panel="omforecast" aria-expanded="false" aria-controls="floating-panel" title="Previsão Open-Meteo">
                 <i class="fas fa-cloud-sun-rain" aria-hidden="true"></i><span>Previsão OM</span>
             </button>
-            <button class="rail-btn" data-panel="ecmwf" aria-expanded="false" aria-controls="floating-panel" title="Previsão ECMWF 72 h">
+            <button class="rail-btn" data-panel="omlayers" aria-expanded="false" aria-controls="floating-panel" title="Camadas Open-Meteo (ECMWF 15 dias)">
+                <i class="fas fa-layer-group" aria-hidden="true"></i><span>Camadas</span>
+            </button>
+            <button class="rail-btn" data-panel="ecmwf" aria-expanded="false" aria-controls="floating-panel" title="Previsão ECMWF 72 h (AWS)">
                 <i class="fas fa-satellite-dish" aria-hidden="true"></i><span>ECMWF</span>
             </button>
             <button class="rail-btn" data-panel="ipma" aria-expanded="false" aria-controls="floating-panel" title="Avisos IPMA">
@@ -47,9 +50,6 @@
             </button>
             <button class="rail-btn" data-panel="stations" aria-expanded="false" aria-controls="floating-panel" title="Estações IPMA">
                 <i class="fas fa-tower-observation" aria-hidden="true"></i><span>Estações</span>
-            </button>
-            <button class="rail-btn" data-panel="era5" aria-expanded="false" aria-controls="floating-panel" title="ERA5 — Histórico">
-                <i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>ERA5</span>
             </button>
             <button class="rail-btn" data-panel="location" aria-expanded="false" aria-controls="floating-panel" title="Localização">
                 <i class="fas fa-location-dot" aria-hidden="true"></i><span>Local</span>
@@ -93,6 +93,31 @@
                 </div>
             </div></template>
 
+            <!-- Widget: Camadas Open-Meteo (ECMWF 15 dias) — botoes por parametro -->
+            <template id="tpl-omlayers"><div id="omlayers-panel" class="widget-body">
+                <div id="omlayers-panel-content" class="widget-content">
+                    <p id="om-run-info" class="widget-meta" aria-live="polite">Fonte: Open-Meteo (ECMWF). A determinar execução…</p>
+                    <div class="widget-section">
+                        <h3>Camadas (selecione uma ou mais)</h3>
+                        <div id="om-layer-buttons" class="om-layer-buttons" role="group" aria-label="Camadas meteorológicas"></div>
+                        <p id="om-layers-status" class="widget-meta" aria-live="polite"></p>
+                    </div>
+                    <div class="widget-section">
+                        <label for="om-layer-opacity">Opacidade das camadas</label>
+                        <input type="range" id="om-layer-opacity" min="0" max="100" value="70" aria-label="Opacidade das camadas no mapa">
+                    </div>
+                    <div class="widget-section">
+                        <h3>Atualização dos dados</h3>
+                        <p class="widget-meta">Os dados são pré-computados e publicados automaticamente <strong>2 vezes por dia</strong> (06:30 e 18:30 UTC) pela ação do GitHub.</p>
+                        <button id="om-refresh-btn" class="btn-secondary"><i class="fas fa-rotate-right" aria-hidden="true"></i> Atualizar agora</button>
+                    </div>
+                    <div class="widget-section">
+                        <h3>Legendas das camadas ativas</h3>
+                        <div id="om-legend-list" class="om-legend-list"></div>
+                    </div>
+                </div>
+            </div></template>
+
             <!-- Widget: ECMWF — Previsão 72 h -->
             <template id="tpl-ecmwf"><div id="ecmwf-panel" class="widget-body">
                 <div id="ecmwf-panel-content" class="widget-content">
@@ -122,37 +147,6 @@
                         <input type="range" id="ecmwf-layer-opacity" min="0" max="100" value="70"
                             aria-label="Opacidade da camada no mapa">
                     </div>
-                </div>
-            </div></template>
-
-            <!-- Widget: ERA5 — Histórico (integração pendente) -->
-            <template id="tpl-era5"><div id="era5-panel" class="widget-body">
-                <div id="era5-panel-content" class="widget-content">
-                    <div class="widget-meta" id="era5-source" aria-live="polite">
-                        Open-Meteo Historical API — ERA5 (reanálise, 0.25°, desde 1940).
-                        Fonte interina identificada; integração ARCO-ERA5/BigQuery pendente.
-                        ERA5 é uma <strong>reanálise histórica</strong>, não previsão.
-                    </div>
-                    <div class="widget-section">
-                        <div class="era5-date-row">
-                            <label for="era5-start-date">Início</label>
-                            <input type="text" id="era5-start-date" class="era5-date-input" aria-label="Data inicial do histórico (AAAA-MM-DD)">
-                            <label for="era5-end-date">Fim</label>
-                            <input type="text" id="era5-end-date" class="era5-date-input" aria-label="Data final do histórico (AAAA-MM-DD)">
-                            <button id="era5-search-btn" class="btn-icon" title="Consultar histórico" aria-label="Consultar histórico">
-                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="era5-loading" class="loading-spinner" hidden>
-                        <div class="spinner" role="status" aria-label="A carregar"></div>
-                        <p>A carregar histórico ERA5…</p>
-                    </div>
-                    <div id="era5-error" class="widget-error" hidden>
-                        <p id="era5-error-message" role="alert"></p>
-                        <button id="era5-retry" class="btn-retry"><i class="fas fa-rotate-right" aria-hidden="true"></i> Tentar novamente</button>
-                    </div>
-                    <div id="era5-results" class="widget-section" aria-live="polite"></div>
                 </div>
             </div></template>
 
@@ -255,19 +249,19 @@
             </div></template>
         </div>
 
-        <!-- ===== LINHA TEMPORAL TRI-HORÁRIA (previsão) ===== -->
+        <!-- ===== LINHA TEMPORAL 15 DIAS (3 h até 72 h, 6 h após) ===== -->
         <div class="timeline-panel" id="timeline-panel" role="region" aria-label="Linha temporal de previsão">
             <div class="timeline-controls">
-                <button id="tl-prev" class="btn-icon" title="Recuar 3 horas" aria-label="Recuar 3 horas">
+                <button id="tl-prev" class="btn-icon" title="Recuar um passo" aria-label="Recuar um passo">
                     <i class="fas fa-chevron-left" aria-hidden="true"></i>
                 </button>
                 <button id="tl-play" class="btn-icon" title="Reproduzir/Pausar animação" aria-label="Reproduzir ou pausar animação" aria-pressed="false">
                     <i class="fas fa-play" aria-hidden="true" id="tl-play-icon"></i>
                 </button>
-                <button id="tl-next" class="btn-icon" title="Avançar 3 horas" aria-label="Avançar 3 horas">
+                <button id="tl-next" class="btn-icon" title="Avançar um passo" aria-label="Avançar um passo">
                     <i class="fas fa-chevron-right" aria-hidden="true"></i>
                 </button>
-                <input type="range" id="tl-range" min="0" max="56" value="0" step="1"
+                <input type="range" id="tl-range" min="0" max="72" value="0" step="1"
                     class="timeline-range" aria-label="Instante de previsão">
                 <output id="tl-datetime" class="timeline-datetime" for="tl-range">--</output>
                 <label class="visually-hidden" for="tl-speed">Velocidade da animação</label>
@@ -284,7 +278,8 @@
                     <option value="UTC">UTC</option>
                 </select>
             </div>
-            <div id="tl-step-info" class="timeline-step-info" aria-live="polite"></div>
+                <span>Previsão 3 h até 72 h · 6 h após 72 h · 15 dias (Open-Meteo ECMWF)</span>
+                <div id="tl-step-info" class="timeline-step-info" aria-live="polite"></div>
         </div>
 
         <!-- Tooltip de hover (avisos IPMA) -->
@@ -316,9 +311,9 @@
             <div class="data-sources">
                 <span>Mapas: <strong>Esri</strong></span>
                 <span>Previsão 72 h: <strong>ECMWF Open Data (AWS)</strong> — CC-BY-4.0</span>
+                <span>Camadas 15 dias: <strong>Open-Meteo (ECMWF IFS 0.25°)</strong> — CC-BY-4.0, atualização 2×/dia</span>
                 <span>Alertas: <strong>IPMA</strong></span>
                 <span>Atual/rajadas: <strong>Open-Meteo</strong> — uso não comercial, &lt;10 000 chamadas/dia</span>
-                <span>Histórico: <strong>ERA5 via Open-Meteo</strong> (ARCO-ERA5/BigQuery pendente)</span>
             </div>
         </div>
     </div>

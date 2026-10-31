@@ -67,9 +67,9 @@ describe('linha temporal tri-horária', () => {
     });
 
     it('HORIZON_STEPS da Timeline é 25', async () => {
-        const Timeline = (await import('../js/meteo/timeline.js')).default;
-        expect(Timeline.HORIZON_STEPS).toBe(25);
-        expect(Timeline.indexToStep(24)).toBe(72);
+        const OmTimeline = (await import('../js/meteo/om-timeline.js')).default;
+        expect(OmTimeline.buildSteps().length).toBe(73);
+        expect(OmTimeline.buildSteps()[24]).toBe(72);
     });
 
     it('validade = execução + prazo', () => {
