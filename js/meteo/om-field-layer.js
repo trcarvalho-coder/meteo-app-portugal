@@ -8,7 +8,7 @@
 import { OM_LAYERS, legendStopsFor } from './om-catalog.js';
 import { allIsobars, isobarLabels } from './isobars.js';
 
-const CELL_HALF = 0.25; // metade do passo da grelha (0.5) em graus
+const CELL_HALF = 1.0; // metade do passo da grelha (2.0 graus) em graus
 
 const state = {
     map: null,

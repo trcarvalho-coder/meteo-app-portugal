@@ -13,8 +13,9 @@ sem chave de API). A documentacao oficial confirma:
 
 Area de interesse (Atlântico Norte): limitado a oeste pelos EUA (meridiano
 -100) e a este pela Alemanha (meridiano 16E); apenas o hemisferio norte.
-A grelha e amostrada a 0.5 (mais fina que a resolucao nativa 0.25 do modelo,
-sem inventar precisao: os valores vem interpolados pela propria API).
+A grelha e amostrada a 2.0 graus (ver comentario em GRID_STEP: limite de
+chamadas por IP da API gratuita); os valores de cada ponto vem interpolados
+pela propria API a partir da resolucao nativa 0.25 do modelo.
 
 Temporalidade (pedido do utilizador):
 - passos de 3 h desde 0 h ate as 72 h (inclusivo) -> 25 instantes;
@@ -44,7 +45,12 @@ MODEL = "ecmwf_ifs025"
 # Alemanha (16E); hemisferio norte (0..72N).
 AOI_LAT = (0.0, 72.0)
 AOI_LON = (-100.0, 16.0)
-GRID_STEP = 0.5
+# Grelha de 2.0 graus: o limite gratuito da Open-Meteo e de 10 000 chamadas/dia
+# POR IP e cada coordenada de um pedido conta como ~1 chamada (peso = numero
+# de localizacoes). Com 0.5 grau seriam 33 785 pontos (~67 000 chamadas/dia a
+# 2 execucoes/dia) — inviavel. Com 2.0 grau: 37 x 59 = 2 183 pontos (~4 400
+# chamadas/dia a 2 execucoes), dentro do limite; e ~400 chamadas/min < 600/min.
+GRID_STEP = 2.0
 
 FORECAST_DAYS = 15
 MAX_STEP_HOURS = FORECAST_DAYS * 24  # 360
@@ -77,17 +83,17 @@ LAYER_VARS = {
 }
 
 # A API aceita ate 1000 coordenadas por pedido, MAS o transporte e GET e o
-# limite de URI do servidor e ~8 KB: com 500 coordenadas o pedido falha com
-# HTTP 414 (Request-URI Too Large, validado contra a API real). Com 200
-# coordenadas (~3 KB de URL) fica seguro; na AOI de ~33 785 pontos sao
-# ~169 pedidos por execucao.
-BATCH_POINTS = 200
-# Throttle entre pedidos: o limite gratuito da Open-Meteo e por IP (e o IP do
-# runner GitHub e partilhado), alem do limite diario de 10 000 chamadas.
-REQUEST_SLEEP = 3.0
-REQUEST_RETRIES = 8
-RETRY_AFTER_MIN = 10        # em 429, esperar pelo menos isto (s) se nao houver Retry-After
-RETRY_AFTER_MAX = 120
+# limite de URI do servidor e ~8 KB (com 500 coordenadas daba HTTP 414,
+# validado contra a API real). Com 100 coordenadas (~1.8 KB de URL) fica
+# seguro; na AOI de 2 183 pontos (grelha 2.0) sao 22 pedidos por execucao.
+BATCH_POINTS = 100
+# Throttle entre pedidos: cada pedido com 100 coordenadas pesa ~100 chamadas;
+# a 15 s entre pedidos ficam ~400 chamadas/min, abaixo do limite de 600/min
+# por IP (o IP do runner GitHub e partilhado por outros utilizadores).
+REQUEST_SLEEP = 15.0
+REQUEST_RETRIES = 10
+RETRY_AFTER_MIN = 60        # em 429, esperar pelo menos isto (s) se nao houver Retry-After
+RETRY_AFTER_MAX = 300
 
 
 def timeline_steps() -> list[int]:
@@ -269,7 +275,12 @@ def field_for_layer(grid: dict, layer: str, step: int, run_base: datetime) -> di
             continue
         idx = _hour_index(times, step, run_base)
         if idx is None:
-            continue
+            # forecast_days=15 devolve 360 horas (indices 0..359): o passo final
+            # de 360 h nao tem indice proprio; usa a ultima hora disponivel
+            if step >= len(times):
+                idx = len(times) - 1
+            else:
+                continue
         if hourly_var:
             series = hourly.get(hourly_var) or []
             if accum:
