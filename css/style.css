@@ -419,16 +419,52 @@ input[type="range"] { width: 100%; accent-color: var(--c-cyan); }
     .widget-content { max-height: 34vh; }
 }
 
-/* ===== ERA5 Historico ===== */
-.era5-date-row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-.era5-date-row label { font-size: var(--fs-xs); color: var(--c-text-dim); }
-.era5-date-input {
-    padding: var(--sp-2); border: 1px solid var(--c-border); border-radius: var(--radius-s);
-    background: rgba(11, 37, 69, 0.6); color: var(--c-text); font: inherit; font-size: var(--fs-xs);
-    color-scheme: dark;
+/* ===== Painel Camadas Open-Meteo (botões por parâmetro) ===== */
+.om-layer-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-2);
 }
-.era5-minmax { display: flex; justify-content: space-between; margin: var(--sp-1) 0; }
-.era5-detail { font-size: var(--fs-xs); color: var(--c-text-dim); margin-top: 2px; }
+.om-layer-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--sp-2) var(--sp-1);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-s);
+    background: rgba(11, 37, 69, 0.45);
+    color: var(--c-text-dim);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    text-align: center;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.om-layer-btn i { font-size: 1rem; }
+.om-layer-btn:hover { background: var(--c-surface-2); color: var(--c-text); }
+.om-layer-btn.active {
+    background: var(--c-cyan);
+    border-color: var(--c-cyan);
+    color: var(--c-deep);
+    font-weight: 700;
+}
+.om-legend-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.om-legend-item {
+    background: rgba(11, 37, 69, 0.45);
+    border-radius: var(--radius-s);
+    padding: var(--sp-2) var(--sp-3);
+}
+.om-legend-item h4 {
+    margin: 0 0 var(--sp-2);
+    font-size: var(--fs-s);
+    color: var(--c-cyan);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+.om-legend-item .legend-bar { height: 10px; }
+.om-legend-item .legend-labels { margin-top: 2px; }
 
 /* ===== Rail de botoes compactos (direita) ===== */
 .widget-rail {
@@ -522,15 +558,24 @@ input[type="range"] { width: 100%; accent-color: var(--c-cyan); }
 /* mobile: rail compacto + painel inferior */
 @media (max-width: 640px) {
     .widget-rail {
-        top: auto; bottom: 120px; right: var(--sp-2);
+        top: auto; bottom: 150px; right: var(--sp-2);
         transform: none;
         flex-direction: row; flex-wrap: wrap; max-width: calc(100vw - 16px);
     }
     .rail-btn { min-width: 54px; padding: 6px; font-size: 0.62rem; }
     .floating-panel {
-        top: auto; bottom: 190px; right: var(--sp-2); left: var(--sp-2);
-        width: auto; max-height: 40vh;
+        top: auto; bottom: 220px; right: var(--sp-2); left: var(--sp-2);
+        width: auto; max-height: 38vh;
     }
+    .om-layer-buttons { grid-template-columns: repeat(2, 1fr); }
+    .om-layer-btn { font-size: 0.62rem; padding: 6px 4px; }
+    .om-layer-btn i { font-size: 0.9rem; }
+    .timeline-panel { bottom: 6px; width: calc(100vw - 16px); padding: var(--sp-2); }
+    .timeline-controls { gap: 6px; }
+    .timeline-range { flex: 1 1 100%; order: 5; }
+    .timeline-datetime { font-size: var(--fs-xs); }
+    .tl-loop-label, .timeline-speed { font-size: var(--fs-xs); }
+    .legend-panel { left: var(--sp-2); bottom: 120px; width: calc(100vw - 32px); }
 }
 
 /* ===== Tooltip hover avisos IPMA ===== */

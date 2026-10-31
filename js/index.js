@@ -9,8 +9,8 @@ import LocationPanel from './panels/location-panel.js';
 import OpenMeteoPanel from './panels/openmeteo-panel.js';
 import OpenMeteoForecastPanel from './panels/omforecast-panel.js';
 import IPMAPanel from './panels/ipma-panel.js';
-import ERA5Panel from './panels/era5-panel.js';
 import ECMWFPanel from './panels/ecmwf-panel.js';
+import OmLayersPanel from './panels/om-layers-panel.js';
 import IpmaLayers, { attachWarningsHover } from './meteo/ipma-layers.js';
 import IpmaPopup from './meteo/ipma-popup.js';
 import IpmaApi from './meteo/ipma-api.js';
@@ -27,10 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     Rail.init({
         openmeteo: () => OpenMeteoPanel.init(),
         omforecast: () => OpenMeteoForecastPanel.init(),
+        omlayers: () => { if (mapResult) OmLayersPanel.init(mapResult.map); },
         ecmwf: () => { if (mapResult) ECMWFPanel.init(mapResult.map); },
         ipma: () => IPMAPanel.init(),
         stations: () => updateStationsStatus(),
-        era5: () => ERA5Panel.init(),
         location: () => LocationPanel.init(MapModule)
     });
 
@@ -96,19 +96,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 2) modo selecao ativo: o handler do map.js trata; nao abrir popup
                 if (MapModule.isSelectionMode && MapModule.isSelectionMode()) return;
 
-                // 3) popup IPMA (observacao + previsao + avisos) com amostra ECMWF
+                // 3) popup IPMA (observacao + previsao + avisos) com amostras das camadas
                 const point = {
                     lat: event.mapPoint.latitude,
                     lng: event.mapPoint.longitude
                 };
                 try {
                     const popup = await IpmaPopup.buildPopupContent(point);
-                    // acrescentar amostra da camada ECMWF ativa, se existir
+                    // acrescentar amostras das camadas Open-Meteo ativas (multi-camada)
                     let extra = '';
+                    const samples = window.OmLayersPanel && window.OmLayersPanel.sampleAtPoint
+                        ? window.OmLayersPanel.sampleAtPoint(point.lat, point.lng) : [];
+                    if (samples.length) {
+                        extra = '<div class="ipma-pop-section"><h4>Camadas Open-Meteo (ECMWF 15 dias) — instante do time slider</h4>';
+                        for (const s of samples) {
+                            const val = s.value != null
+                                ? `${Math.round(s.value * 10) / 10} ${s.unit}`
+                                : 'Indisponível';
+                            extra += `<div class="ipma-pop-row"><span>${s.label}${s.accumWindow ? ` (janela ${s.accumWindow} h)` : ''}</span><strong>${val}</strong></div>`;
+                        }
+                        const first = samples.find(s => s.validTimeUtc);
+                        if (first) {
+                            extra += `<p class="ipma-pop-src">Fonte: Open-Meteo (ECMWF IFS 0.25°) · Validade ${first.validTimeUtc} (UTC) · +${first.step} h</p>`;
+                        }
+                        extra += '</div>';
+                    }
+                    // amostra da camada ECMWF AWS ativa, se existir
                     const sample = window.ECMWFPanel && window.ECMWFPanel.sampleAtPoint
                         ? window.ECMWFPanel.sampleAtPoint(point.lat, point.lng) : null;
                     if (sample && sample.value != null) {
-                        extra = `<div class="ipma-pop-section"><h4>ECMWF (camada ativa)</h4>` +
+                        extra += `<div class="ipma-pop-section"><h4>ECMWF (camada AWS ativa)</h4>` +
                             `<div class="ipma-pop-row"><span>${sample.meta.displayName}</span><strong>${sample.value} ${sample.field.unit}</strong></div>` +
                             `<p class="ipma-pop-src">${sample.field.source} · Execução ${sample.field.run} · Validade ${sample.field.validTimeUtc} · célula nativa 0.25°</p></div>`;
                     }
@@ -137,7 +154,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             OpenMeteoPanel.updatePanel(location.lat, location.lng);
             OpenMeteoForecastPanel.setLocation(location.lat, location.lng, location.name);
             IPMAPanel.updatePanel(location.lat, location.lng);
-            ERA5Panel.setLocation(location.lat, location.lng);
             if (MapModule.isInitialized()) {
                 MapModule.centerOnCoordinates(location.lng, location.lat, 12);
                 MapModule.addLocationMarker(location.lng, location.lat, location.name || 'Localizacao');

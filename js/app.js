@@ -1,6 +1,6 @@
 // ===== Orquestrador da aplicação =====
 // O painel esquerdo foi removido; toda a apresentação vive nos widgets da
-// direita (openmeteo-panel, ipma-panel, location-panel, ecmwf-panel, era5-panel).
+// direita (openmeteo-panel, ipma-panel, location-panel, ecmwf-panel, om-layers-panel).
 
 import { Config, Helpers } from './config.js';
 import MapModule from './map.js';

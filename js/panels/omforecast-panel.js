@@ -154,13 +154,13 @@ const OpenMeteoForecastPanel = (function() {
                 let html = '<div class="hourly-time">' + times[i].slice(8) + '/' + times[i].slice(5, 7) + '</div>';
                 for (const f of fields) {
                     const vals = data.daily[f] || [];
-                    if (vals[i] == null) { html += '<div class="era5-detail">--</div>'; continue; }
-                    if (f.indexOf('wind') >= 0) html += '<div class="era5-detail">' + Math.round(normalizeWindSpeed(vals[i], 'kmh')) + ' km/h</div>';
-                    else html += '<div class="era5-detail">' + (Math.round(vals[i] * 10) / 10) + ' ' + v.unit + '</div>';
+                    if (vals[i] == null) { html += '<div class="omf-detail">--</div>'; continue; }
+                    if (f.indexOf('wind') >= 0) html += '<div class="omf-detail">' + Math.round(normalizeWindSpeed(vals[i], 'kmh')) + ' km/h</div>';
+                    else html += '<div class="omf-detail">' + (Math.round(vals[i] * 10) / 10) + ' ' + v.unit + '</div>';
                 }
                 const code = data.daily.weather_code && data.daily.weather_code[i];
                 const desc = code != null ? Helpers.getWeatherDescription(code) : '';
-                if (desc) html += '<div class="era5-detail omf-desc">' + desc + '</div>';
+                if (desc) html += '<div class="omf-detail omf-desc">' + desc + '</div>';
                 item.innerHTML = html;
                 scroll.appendChild(item);
             }
