@@ -26,13 +26,15 @@ concurrency:
 jobs:
   precompute:
     runs-on: ubuntu-latest
-    # A grelha da AOI tem ~33 785 pontos; a 200 pontos/pedido (GET: URI tem de
-    # ficar < ~8 KB; 500 pontos daba HTTP 414) sao ~169 pedidos por execucao.
-    # O IP do runner GitHub e partilhado e a Open-Meteo aplica rate limit por
-    # IP (429, observado na corrida 41242679973): dai o throttle de 3 s, o
-    # retry com Retry-After e a cache de lotes (recuperada de corridas
-    # anteriores, TTL 24 h).
-    timeout-minutes: 120
+    # Limite gratuito da Open-Meteo: 10 000 chamadas/dia e 600/min POR IP, e
+    # cada coordenada de um pedido pesa ~1 chamada (peso = n.º de
+    # localizacoes). Com grelha de 0.5 grau a AOI teria 33 785 pontos
+    # (~67 000 chamadas/dia a 2 execucoes) — inviavel e causou 429 nas
+    # corridas 41242679973 e 41245962434 (IP do runner partilhado). Com grelha
+    # de 2.0 grau: 2 183 pontos = ~4 400 chamadas/dia (2 execucoes), dentro do
+    # limite; 22 pedidos de 100 coordenadas a 15 s = ~400 chamadas/min < 600.
+    # A 100/pedido o URI GET fica ~1.8 KB (< ~8 KB; 500 daba HTTP 414).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 

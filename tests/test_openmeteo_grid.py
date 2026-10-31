@@ -43,8 +43,24 @@ def test_aoi_north_atlantic_bounded_by_usa_and_germany():
     lats, lons = om.grid_points()
     assert lats[0] == lat_s and lats[-1] == lat_n
     assert lons[0] == lon_w and lons[-1] == lon_e
-    assert len(lats) == 145   # 0..72 de 0.5 em 0.5
-    assert len(lons) == 233   # -100..16 de 0.5 em 0.5
+    assert len(lats) == 37    # 0..72 de 2.0 em 2.0
+    assert len(lons) == 59    # -100..16 de 2.0 em 2.0
+
+
+def test_grid_step_keeps_daily_budget_under_free_tier():
+    # limite gratuito Open-Meteo: 10 000 chamadas/dia por IP; cada coordenada
+    # de um pedido pesa ~1 chamada. 2 execucoes/dia x 2 183 pontos = ~4 366
+    # chamadas/dia < 10 000 (com 0.5 grau seriam ~67 000 — inviavel).
+    assert om.GRID_STEP == 2.0
+    lats, lons = om.grid_points()
+    total = len(lats) * len(lons)
+    assert total == 2183
+    assert total * 2 < 10000
+    # e por minuto: 22 pedidos de ~100 chamadas a 15 s = ~400 chamadas/min < 600
+    calls_per_run = math.ceil(total / om.BATCH_POINTS)
+    assert calls_per_run == 22
+    per_min = om.BATCH_POINTS / om.REQUEST_SLEEP * 60
+    assert per_min < 600
 
 
 def test_model_is_free_ecmwf_open_data():
@@ -97,6 +113,19 @@ def test_field_nulls_preserved_not_zero():
     assert f["values"][0][0] is None
 
 
+def test_step_360_uses_last_available_hour():
+    # forecast_days=15 devolve horas 0..359; o passo 360 h usa a ultima hora
+    from datetime import datetime, timedelta, timezone
+    run_base = datetime(2026, 10, 31, 0, tzinfo=timezone.utc)
+    times = [(run_base + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M") for h in range(0, 360)]
+    grid = {"lats": [40.0], "lons": [-9.0],
+            "points": [{"hourly": {"time": times, "pressure_msl": list(range(360))}}]}
+    f = om.field_for_layer(grid, "pressure", 360, run_base)
+    assert f["values"][0][0] == 359  # ultimo indice disponivel
+    f72 = om.field_for_layer(grid, "pressure", 72, run_base)
+    assert f72["values"][0][0] == 72
+
+
 def test_layer_units():
     assert om.layer_unit("wind") == "km/h"
     assert om.layer_unit("gust") == "km/h"
@@ -119,14 +148,14 @@ def test_valid_time_iso():
 
 def test_batch_points_within_uri_limit():
     # GET com 500 coordenadas falha com HTTP 414 (URI > ~8 KB, validado na API
-    # real); 200 coordenadas (~3 KB) e seguro e cabe no limite de 1000/pedido
+    # real); 100 coordenadas (~1.8 KB) e seguro e cabe no limite de 1000/pedido
     assert om.BATCH_POINTS <= 1000
-    assert om.BATCH_POINTS == 200
+    assert om.BATCH_POINTS == 100
     url_len = om.BATCH_POINTS * 7 + om.BATCH_POINTS * 8  # lat+lon ~15 bytes cada
     assert url_len < 8000
-    total_points = 145 * 233
+    total_points = 37 * 59
     calls = math.ceil(total_points / om.BATCH_POINTS)
-    assert calls == 169
+    assert calls == 22
 
 
 def test_retry_respects_retry_after_on_429(monkeypatch, tmp_path):
@@ -157,7 +186,7 @@ def test_retry_respects_retry_after_on_429(monkeypatch, tmp_path):
     assert out == {"ok": True}
     assert calls["n"] == 3
     # respeita Retry-After (7s) mas com minimo de 10s definido
-    assert sleeps[0] >= 10 and sleeps[1] >= 10
+    assert sleeps[0] >= 60 and sleeps[1] >= 60
 
 
 def test_batch_cache_roundtrip(tmp_path, monkeypatch):
