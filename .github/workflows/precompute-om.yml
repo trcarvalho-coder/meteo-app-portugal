@@ -26,11 +26,12 @@ concurrency:
 jobs:
   precompute:
     runs-on: ubuntu-latest
-    # A grelha da AOI tem ~ (145 x 233) pontos; a ~100 pontos/pedido sao
-    # ~340 pedidos. Com throttling de ~1.2 s + retry, 90 min e margem segura
-    # (limite de 10 000 chamadas/dia da Open-Meteo nao e posto em causa:
-    # ~700 chamadas/dia nesta corrida).
-    timeout-minutes: 90
+    # A grelha da AOI tem ~33 785 pontos; a 500 pontos/pedido (limite da API:
+    # ate 1000 coordenadas por pedido) sao ~68 pedidos por execucao.
+    # O IP do runner GitHub e partilhado e a Open-Meteo aplica rate limit por
+    # IP (429): dai o throttle de 3 s, o retry com Retry-After e a cache de
+    # lotes (recuperada de corridas anteriores, TTL 24 h).
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +39,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Cache de lotes Open-Meteo (mitiga 429 do rate limit por IP)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/om-cache
+          key: om-batch-${{ github.run_number }}
+          restore-keys: |
+            om-batch-
+
       - name: Pre-computar camadas Open-Meteo (15 dias, 3h/6h)
+        env:
+          METEO_OM_CACHE_DIR: /tmp/om-cache
+          METEO_OM_CACHE_TTL: "86400"
         run: python backend/precompute_om.py
 
       - name: Validar indice e ficheiros antes do commit
