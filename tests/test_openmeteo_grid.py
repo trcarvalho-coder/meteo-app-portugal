@@ -117,14 +117,16 @@ def test_valid_time_iso():
     assert om.valid_time_iso(run_base, 6) == "2026-10-31T18:00:00Z"
 
 
-def test_batch_points_within_api_limit_and_reduced_calls():
-    # a API aceita ate 1000 coordenadas por pedido; 500 deixa margem e reduz
-    # os ~338 pedidos (lotes de 100, que sofriam 429 por IP) para ~68
+def test_batch_points_within_uri_limit():
+    # GET com 500 coordenadas falha com HTTP 414 (URI > ~8 KB, validado na API
+    # real); 200 coordenadas (~3 KB) e seguro e cabe no limite de 1000/pedido
     assert om.BATCH_POINTS <= 1000
-    assert om.BATCH_POINTS == 500
+    assert om.BATCH_POINTS == 200
+    url_len = om.BATCH_POINTS * 7 + om.BATCH_POINTS * 8  # lat+lon ~15 bytes cada
+    assert url_len < 8000
     total_points = 145 * 233
     calls = math.ceil(total_points / om.BATCH_POINTS)
-    assert calls == 68
+    assert calls == 169
 
 
 def test_retry_respects_retry_after_on_429(monkeypatch, tmp_path):

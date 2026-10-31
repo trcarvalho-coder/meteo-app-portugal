@@ -26,11 +26,12 @@ concurrency:
 jobs:
   precompute:
     runs-on: ubuntu-latest
-    # A grelha da AOI tem ~33 785 pontos; a 500 pontos/pedido (limite da API:
-    # ate 1000 coordenadas por pedido) sao ~68 pedidos por execucao.
+    # A grelha da AOI tem ~33 785 pontos; a 200 pontos/pedido (GET: URI tem de
+    # ficar < ~8 KB; 500 pontos daba HTTP 414) sao ~169 pedidos por execucao.
     # O IP do runner GitHub e partilhado e a Open-Meteo aplica rate limit por
-    # IP (429): dai o throttle de 3 s, o retry com Retry-After e a cache de
-    # lotes (recuperada de corridas anteriores, TTL 24 h).
+    # IP (429, observado na corrida 41242679973): dai o throttle de 3 s, o
+    # retry com Retry-After e a cache de lotes (recuperada de corridas
+    # anteriores, TTL 24 h).
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4

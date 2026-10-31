@@ -76,11 +76,12 @@ LAYER_VARS = {
     "tempMin": ["tempMin"],
 }
 
-# A API aceita ate 1000 coordenadas por pedido; usamos 500 para margem de
-# seguranca no tamanho da URL/resposta. Com ~33 785 pontos na AOI sao ~68
-# pedidos por execucao (vs ~338 com lotes de 100, que sofria 429 por IP
-# partilhado do runner).
-BATCH_POINTS = 500
+# A API aceita ate 1000 coordenadas por pedido, MAS o transporte e GET e o
+# limite de URI do servidor e ~8 KB: com 500 coordenadas o pedido falha com
+# HTTP 414 (Request-URI Too Large, validado contra a API real). Com 200
+# coordenadas (~3 KB de URL) fica seguro; na AOI de ~33 785 pontos sao
+# ~169 pedidos por execucao.
+BATCH_POINTS = 200
 # Throttle entre pedidos: o limite gratuito da Open-Meteo e por IP (e o IP do
 # runner GitHub e partilhado), alem do limite diario de 10 000 chamadas.
 REQUEST_SLEEP = 3.0
