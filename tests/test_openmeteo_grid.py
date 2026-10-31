@@ -1,4 +1,5 @@
 # ===== Testes do pipeline Open-Meteo (camadas geograficas ECMWF 15 dias) =====
+import math
 import os
 import sys
 
@@ -114,3 +115,66 @@ def test_valid_time_iso():
     from datetime import datetime, timezone
     run_base = datetime(2026, 10, 31, 12, tzinfo=timezone.utc)
     assert om.valid_time_iso(run_base, 6) == "2026-10-31T18:00:00Z"
+
+
+def test_batch_points_within_uri_limit():
+    # GET com 500 coordenadas falha com HTTP 414 (URI > ~8 KB, validado na API
+    # real); 200 coordenadas (~3 KB) e seguro e cabe no limite de 1000/pedido
+    assert om.BATCH_POINTS <= 1000
+    assert om.BATCH_POINTS == 200
+    url_len = om.BATCH_POINTS * 7 + om.BATCH_POINTS * 8  # lat+lon ~15 bytes cada
+    assert url_len < 8000
+    total_points = 145 * 233
+    calls = math.ceil(total_points / om.BATCH_POINTS)
+    assert calls == 169
+
+
+def test_retry_respects_retry_after_on_429(monkeypatch, tmp_path):
+    import urllib.error
+    calls = {"n": 0}
+    sleeps = []
+
+    class FakeHeaders:
+        def get(self, k):
+            return "7" if k == "Retry-After" else None
+
+    def fake_urlopen(req, timeout=0):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", FakeHeaders(), None)
+        class R:
+            def read(self):
+                return b'{"ok": true}'
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                return False
+        return R()
+
+    monkeypatch.setattr(om.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(om.time, "sleep", lambda s: sleeps.append(s))
+    out = om._http_get_json("https://api.open-meteo.com/v1/forecast?x=1")
+    assert out == {"ok": True}
+    assert calls["n"] == 3
+    # respeita Retry-After (7s) mas com minimo de 10s definido
+    assert sleeps[0] >= 10 and sleeps[1] >= 10
+
+
+def test_batch_cache_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setenv("METEO_OM_CACHE_DIR", str(tmp_path))
+    batch = [(20.0, -76.0), (20.0, -75.5)]
+    payload = [{"hourly": {"time": ["2026-10-31T00:00"], "wind_speed_10m": [10.0]}},
+               {"hourly": {"time": ["2026-10-31T00:00"], "wind_speed_10m": [12.0]}}]
+    path = om._batch_cache_path(batch)
+    import json as _json
+    with open(path, "w", encoding="utf-8") as fh:
+        _json.dump(payload, fh)
+    loaded = om._batch_cached(batch)
+    assert loaded == payload
+    # TTL expirado -> None
+    monkeypatch.setenv("METEO_OM_CACHE_TTL", "0")
+    import time as _time
+    old = _time.time() - 5
+    import os as _os
+    _os.utime(path, (old, old))
+    assert om._batch_cached(batch) is None

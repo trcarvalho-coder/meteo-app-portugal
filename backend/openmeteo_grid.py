@@ -32,6 +32,7 @@ import json
 import math
 import os
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -75,9 +76,18 @@ LAYER_VARS = {
     "tempMin": ["tempMin"],
 }
 
-BATCH_POINTS = 100          # pontos por pedido (limite de URL / resposta)
-REQUEST_SLEEP = 1.2         # segundos entre pedidos (limite 10 000 chamadas/dia)
-REQUEST_RETRIES = 4
+# A API aceita ate 1000 coordenadas por pedido, MAS o transporte e GET e o
+# limite de URI do servidor e ~8 KB: com 500 coordenadas o pedido falha com
+# HTTP 414 (Request-URI Too Large, validado contra a API real). Com 200
+# coordenadas (~3 KB de URL) fica seguro; na AOI de ~33 785 pontos sao
+# ~169 pedidos por execucao.
+BATCH_POINTS = 200
+# Throttle entre pedidos: o limite gratuito da Open-Meteo e por IP (e o IP do
+# runner GitHub e partilhado), alem do limite diario de 10 000 chamadas.
+REQUEST_SLEEP = 3.0
+REQUEST_RETRIES = 8
+RETRY_AFTER_MIN = 10        # em 429, esperar pelo menos isto (s) se nao houver Retry-After
+RETRY_AFTER_MAX = 120
 
 
 def timeline_steps() -> list[int]:
@@ -102,28 +112,75 @@ def grid_points() -> tuple[list[float], list[float]]:
 
 
 def _http_get_json(url: str) -> dict:
+    """GET JSON com retry. Em 429 (rate limit por IP) respeita o cabeçalho
+    Retry-After (ou um mínimo de RETRY_AFTER_MIN s) com backoff exponencial."""
     last = None
     for attempt in range(REQUEST_RETRIES):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "meteo-app-portugal/1.0"})
             with urllib.request.urlopen(req, timeout=120) as r:
                 return json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code == 429:
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                try:
+                    wait = float(retry_after) if retry_after else 0.0
+                except ValueError:
+                    wait = 0.0
+                wait = min(RETRY_AFTER_MAX, max(RETRY_AFTER_MIN, wait, 2 ** attempt * 5))
+                print(f"429 Too Many Requests: a esperar {wait:.0f}s (tentativa {attempt + 1}/{REQUEST_RETRIES})", flush=True)
+                time.sleep(wait)
+                continue
+            if exc.code >= 500 and attempt < REQUEST_RETRIES - 1:
+                time.sleep(min(30, 5 * (attempt + 1)))
+                continue
+            raise RuntimeError(f"GET {url}: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
             last = exc
-            time.sleep(min(30, 5 * (attempt + 1)))
+            if attempt < REQUEST_RETRIES - 1:
+                time.sleep(min(30, 5 * (attempt + 1)))
+                continue
     raise RuntimeError(f"GET {url}: {last}")
+
+
+def _batch_cache_path(batch: list[tuple[float, float]]) -> str | None:
+    cache_dir = os.environ.get("METEO_OM_CACHE_DIR")
+    if not cache_dir:
+        return None
+    os.makedirs(cache_dir, exist_ok=True)
+    key = f"{batch[0][0]:.2f}_{batch[0][1]:.2f}-{batch[-1][0]:.2f}_{batch[-1][1]:.2f}-{len(batch)}"
+    return os.path.join(cache_dir, f"batch-{key}.json")
+
+
+def _batch_cached(batch: list[tuple[float, float]]) -> list[dict] | None:
+    path = _batch_cache_path(batch)
+    if not path or not os.path.exists(path):
+        return None
+    ttl = int(os.environ.get("METEO_OM_CACHE_TTL", "86400"))
+    if time.time() - os.path.getmtime(path) > ttl:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 def fetch_grid_batch(lats: list[float], lons: list[float]) -> list[dict]:
     """Um pedido Open-Meteo para ate BATCH_POINTS coordenadas.
 
     Devolve a lista de respostas (uma por coordenada, na mesma ordem), cada uma
-    com hourly/daily completos para os 15 dias.
+    com hourly/daily completos para os 15 dias. Lotes podem vir de cache
+    (METEO_OM_CACHE_DIR) para mitigar o rate limit (429) da API.
     """
     points = [(la, lo) for la in lats for lo in lons]
     results: list[dict | None] = [None] * len(points)
     for start in range(0, len(points), BATCH_POINTS):
         batch = points[start:start + BATCH_POINTS]
+        cached_batch = _batch_cached(batch)
+        if cached_batch is not None:
+            for i, item in enumerate(cached_batch):
+                if i < len(batch):
+                    results[start + i] = item
+            continue
         params = {
             "latitude": ",".join(f"{p[0]:.2f}" for p in batch),
             "longitude": ",".join(f"{p[1]:.2f}" for p in batch),
@@ -145,6 +202,10 @@ def fetch_grid_batch(lats: list[float], lons: list[float]) -> list[dict]:
             for i, item in enumerate(data):
                 if i < len(batch):
                     results[start + i] = item
+            cache_path = _batch_cache_path(batch)
+            if cache_path and all(r is not None for r in results[start:start + len(batch)]):
+                with open(cache_path, "w", encoding="utf-8") as fh:
+                    json.dump(results[start:start + len(batch)], fh)
         else:
             # pedido de ponto unico devolve objeto (nao usado aqui, por seguranca)
             results[start] = data
